@@ -165,10 +165,10 @@
             <table class="metric-table" id="metrics-table"></table>
         </div>
 
-        <div id="stats-section" class="section" style="display: none;">
+        <!-- <div id="stats-section" class="section" style="display: none;">
             <h3>📈 Общая статистика работы сервиса</h3>
             <table class="metric-table" id="stats-table"></table>
-        </div>
+        </div> -->
     </div>
 
 <script>
@@ -182,8 +182,8 @@
     const metricsSection = document.getElementById('metrics-section');
     const metricsTable = document.getElementById('metrics-table');
 
-    const statsSection = document.getElementById('stats-section');
-    const statsTable = document.getElementById('stats-table');
+    // const statsSection = document.getElementById('stats-section');
+    // const statsTable = document.getElementById('stats-table');
 
     uploadButton.addEventListener('click', async () => {
         if (!videoFile.files.length) {
@@ -200,7 +200,7 @@
 
         transcriptSection.style.display = 'none';
         metricsSection.style.display = 'none';
-        statsSection.style.display = 'none';
+        // statsSection.style.display = 'none';
 
         try {
             const response = await fetch('/api/v1/transcribe', {
