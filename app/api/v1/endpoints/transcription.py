@@ -2,6 +2,9 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from app.api.v1.schemas import TranscriptionResponse
 from app.services import audio_service, transcription_service
 import uuid
+import time
+
+from app.stats import stats, processing_times
 
 router = APIRouter()
 
@@ -12,8 +15,14 @@ async def transcribe_video(file: UploadFile = File(..., description="Видео�
 
     - **file**: Видеофайл, который необходимо обработать.
     """
+
+    start = time.time()
+    stats["requests_total"] += 1
+
     # Простая проверка типа контента видео.
     if not file.content_type or not file.content_type.startswith("video/"):
+        stats["invalid_type_total"] += 1
+        stats["errors_total"] += 1
         raise HTTPException(
             status_code=400, 
             detail=f"Неверный тип файла: {file.content_type}. Пожалуйста, загрузите видео."
@@ -23,6 +32,8 @@ async def transcribe_video(file: UploadFile = File(..., description="Видео�
     contents = await file.read()
     await file.seek(0)
     if not contents:
+        stats["empty_files_total"] += 1
+        stats["errors_total"] += 1
         raise HTTPException(status_code=400, detail="Загруженный файл пуст.")
 
     try:
@@ -35,6 +46,15 @@ async def transcribe_video(file: UploadFile = File(..., description="Видео�
         # Генерируем уникальный ID для видео.
         video_id = str(uuid.uuid4())
 
+        # Метрики успеха
+        stats["success_total"] += 1
+
+        # Время обработки
+        duration = time.time() - start
+        processing_times.append(duration)
+        stats["last_processing_time"] = duration
+        stats["avg_processing_time"] = sum(processing_times) / len(processing_times)
+
         # Форматируем и возвращаем ответ.
         return TranscriptionResponse(
             video_id=video_id,
@@ -42,5 +62,12 @@ async def transcribe_video(file: UploadFile = File(..., description="Видео�
             transcript=transcription_result["transcript"],
         )
     except Exception as e:
+        stats["errors_total"] += 1
+
+        duration = time.time() - start
+        processing_times.append(duration)
+        stats["last_processing_time"] = duration
+        stats["avg_processing_time"] = sum(processing_times) / len(processing_times)
+
         # Общий обработчик ошибок для перехвата исключений из сервисов.
         raise HTTPException(status_code=500, detail=f"Произошла ошибка: {str(e)}")

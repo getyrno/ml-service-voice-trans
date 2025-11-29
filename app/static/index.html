@@ -1,82 +1,242 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sparq Voice Recognition</title>
+
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 2em; background-color: #f4f4f9; color: #333; display: flex; justify-content: center; align-items: center; min-height: 90vh; }
-        .container { max-width: 600px; width: 100%; margin: auto; background: white; padding: 2em; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #4a4a4a; }
-        input[type="file"] { display: block; width: 100%; padding: 10px; margin: 1em 0; border: 1px solid #ddd; border-radius: 4px; }
-        button { background-color: #007bff; color: white; padding: 12px 18px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; width: 100%; }
-        button:disabled { background-color: #cccccc; }
-        #result-container { margin-top: 1.5em; padding: 1em; background: #e9ecef; border-radius: 4px; }
-        #result { white-space: pre-wrap; word-wrap: break-word; }
-        #spinner { display: none; margin: 1.5em auto; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* === OS X — глобальный стиль === */
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f5f5f7; /* Apple grey */
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", 
+                         "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* === Центрированный Apple-блок === */
+        .container {
+            width: 650px;
+            max-width: 90%;
+            background: #ffffffcc;
+            backdrop-filter: blur(20px); /* стекло Apple */
+            padding: 40px 45px;
+            border-radius: 18px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+            text-align: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-weight: 600;
+            color: #1d1d1f; /* Apple black */
+            letter-spacing: -0.4px;
+            font-size: 1.9em;
+        }
+
+        /* === Inputs === */
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            background: #fafafa;
+            border: 1px solid #d2d2d7;
+            border-radius: 10px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        input[type="file"]:hover {
+            background: #f0f0f3;
+        }
+
+        /* === Кнопка Apple style === */
+        button {
+            margin-top: 20px;
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            color: white;
+            background: #0071e3; /* Apple blue */
+            transition: background 0.25s ease, transform 0.15s ease;
+        }
+
+        button:hover {
+            background: #007aff;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            background: #b3b3b3;
+        }
+
+        /* === Спиннер Apple === */
+        #spinner {
+            display: none;
+            margin: 25px auto;
+            width: 42px;
+            height: 42px;
+            border: 4px solid #e0e0e0;
+            border-top: 4px solid #007aff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* === Блоки результата === */
+        .section {
+            text-align: left;
+            margin-top: 25px;
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 14px;
+            border: 1px solid #e5e5e5;
+        }
+
+        .section h3 {
+            margin-top: 0;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+
+        .metric-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 15px;
+        }
+
+        .metric-table td {
+            padding: 8px 4px;
+            border-bottom: 1px solid #e4e4e7;
+        }
+
+        .metric-label {
+            font-weight: 600;
+            width: 35%;
+            color: #3a3a3c;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            background: #f0f0f3;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 15px;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <h1>Тестирование</h1>
+        <h1>Sparq Voice Recognition</h1>
+
         <input type="file" id="videoFile" accept="video/*">
         <button id="uploadButton">Транскрибировать</button>
+
         <div id="spinner"></div>
-        <div id="result-container" style="display: none;">
-            <h3>Result:</h3>
-            <pre id="result"></pre>
+
+        <div id="transcript-section" class="section" style="display: none;">
+            <h3>📝 Расшифровка</h3>
+            <pre id="transcript"></pre>
+        </div>
+
+        <div id="metrics-section" class="section" style="display: none;">
+            <h3>📊 Метрики запроса</h3>
+            <table class="metric-table" id="metrics-table"></table>
+        </div>
+
+        <div id="stats-section" class="section" style="display: none;">
+            <h3>📈 Общая статистика работы сервиса</h3>
+            <table class="metric-table" id="stats-table"></table>
         </div>
     </div>
 
-    <script>
-        const videoFile = document.getElementById('videoFile');
-        const uploadButton = document.getElementById('uploadButton');
-        const resultContainer = document.getElementById('result-container');
-        const resultDiv = document.getElementById('result');
-        const spinner = document.getElementById('spinner');
+<script>
+    const videoFile = document.getElementById('videoFile');
+    const uploadButton = document.getElementById('uploadButton');
+    const spinner = document.getElementById('spinner');
 
-        uploadButton.addEventListener('click', async () => {
-            if (!videoFile.files.length) {
-                resultDiv.textContent = 'Please select a file first.';
-                resultContainer.style.display = 'block';
-                return;
+    const transcriptSection = document.getElementById('transcript-section');
+    const transcriptDiv = document.getElementById('transcript');
+
+    const metricsSection = document.getElementById('metrics-section');
+    const metricsTable = document.getElementById('metrics-table');
+
+    const statsSection = document.getElementById('stats-section');
+    const statsTable = document.getElementById('stats-table');
+
+    uploadButton.addEventListener('click', async () => {
+        if (!videoFile.files.length) {
+            alert('Выберите файл.');
+            return;
+        }
+
+        const file = videoFile.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+
+        spinner.style.display = 'block';
+        uploadButton.disabled = true;
+
+        transcriptSection.style.display = 'none';
+        metricsSection.style.display = 'none';
+        statsSection.style.display = 'none';
+
+        try {
+            const response = await fetch('/api/v1/transcribe', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.detail || 'Ошибка.');
+
+            transcriptDiv.textContent = data.transcript;
+            transcriptSection.style.display = 'block';
+
+            metricsTable.innerHTML = `
+                <tr><td class="metric-label">Язык</td><td>${data.language}</td></tr>
+                <tr><td class="metric-label">Время обработки</td><td>${data.processing_time.toFixed(3)} сек</td></tr>
+                <tr><td class="metric-label">Размер файла</td><td>${data.file_size} байт</td></tr>
+                <tr><td class="metric-label">Video ID</td><td>${data.video_id}</td></tr>
+            `;
+            metricsSection.style.display = 'block';
+
+            if (data.stats) {
+                statsTable.innerHTML = Object.entries(data.stats)
+                    .map(([k, v]) => `<tr><td class="metric-label">${k}</td><td>${v}</td></tr>`)
+                    .join('');
+                statsSection.style.display = 'block';
             }
 
-            const file = videoFile.files[0];
-            const formData = new FormData();
-            formData.append('file', file);
+        } catch (err) {
+            alert("Ошибка: " + err.message);
+        } finally {
+            spinner.style.display = 'none';
+            uploadButton.disabled = false;
+        }
+    });
+</script>
 
-            // Show spinner, disable button, and hide previous results
-            spinner.style.display = 'block';
-            uploadButton.disabled = true;
-            resultContainer.style.display = 'none';
-            resultDiv.textContent = '';
-
-            try {
-                const response = await fetch('/api/v1/transcribe', {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.detail || 'An unknown error occurred.');
-                }
-                
-                resultDiv.textContent = `Language: ${data.language}\n\nTranscript:\n${data.transcript}`;
-                resultContainer.style.display = 'block';
-
-            } catch (error) {
-                resultDiv.textContent = `Error: ${error.message}`;
-                resultContainer.style.display = 'block';
-            } finally {
-                // Hide spinner and re-enable button
-                spinner.style.display = 'none';
-                uploadButton.disabled = false;
-            }
-        });
-    </script>
 </body>
 </html>
