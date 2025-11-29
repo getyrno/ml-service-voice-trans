@@ -4,7 +4,7 @@ from app.services import audio_service, transcription_service
 import uuid
 import time
 
-from app.stats import stats, processing_times
+from app.stats import stats # , processing_times
 
 router = APIRouter()
 
@@ -51,7 +51,7 @@ async def transcribe_video(file: UploadFile = File(..., description="Видео�
 
         # Время обработки
         duration = time.time() - start
-        processing_times.append(duration)
+        # processing_times.append(duration)
         stats["last_processing_time"] = duration
         stats["avg_processing_time"] = sum(processing_times) / len(processing_times)
 
