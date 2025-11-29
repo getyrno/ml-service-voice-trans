@@ -9,73 +9,49 @@ import time
 router = APIRouter()
 
 @router.post("/transcribe", response_model=TranscriptionResponse)
-async def transcribe_video(request: Request,file: UploadFile = File(..., description="Видеофайл для транскрибации.")):
-    content_length = request.headers.get("content-length")
-    # получаем размер файла, не читая его содержимое
-    file.file.seek(0, 2)   # переходим в конец файла
-    file_size = file.file.tell()  # узнаём размер в байтах
-    file.file.seek(0)      # возвращаемся в начало, чтобы extract_audio работал правильно
-
+async def transcribe_video(
+    request: Request,
+    file: UploadFile = File(..., description="Видеофайл для транскрибации.")
+):
     """
-    Принимает видеофайл, извлекает из него аудиодорожку, транскрибирует речь и возвращает результат в виде текста.
-
-    - **file**: Видеофайл, который необходимо обработать.
+    Принимает видеофайл, извлекает аудиодорожку, транскрибирует речь
+    и возвращает результат в виде текста.
     """
 
     start = time.time()
-    # stats["requests_total"] += 1
 
-    # Простая проверка типа контента видео.
+    # 1. Проверка типа контента
     if not file.content_type or not file.content_type.startswith("video/"):
-        # stats["invalid_type_total"] += 1
-        # stats["errors_total"] += 1
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail=f"Неверный тип файла: {file.content_type}. Пожалуйста, загрузите видео."
         )
-    
-    # Проверка на пустой файл.
-    chunk = await file.read(1024)
-    await file.seek(0)
 
-    if not chunk:
-        raise HTTPException(400, "Файл пустой.")
-    
+    # 2. Размер файла, не читая его содержимое
+    file.file.seek(0, 2)          # в конец
+    file_size = file.file.tell()  # размер в байтах
+    file.file.seek(0)             # обратно в начало
+
+    if file_size == 0:
+        raise HTTPException(400, "Загруженный файл пуст.")
+
     try:
-        # Извлекаем аудио из загруженного видеофайла.
+        # 3. Извлекаем аудио
         audio_path = await audio_service.extract_audio(file)
 
-        # Транскрибируем извлеченное аудио.
+        # 4. Транскрибируем
         transcription_result = transcription_service.transcribe_audio(audio_path)
 
-        # Генерируем уникальный ID для видео.
         video_id = str(uuid.uuid4())
-
-        # Метрики успеха
-        # stats["success_total"] += 1
-
-        # Время обработки
         duration = time.time() - start
-        # processing_times.append(duration)
-        # stats["last_processing_time"] = duration
-        # stats["avg_processing_time"] = 0 #sum(processing_times) / len(processing_times)
 
-        # Форматируем и возвращаем ответ.
         return TranscriptionResponse(
             video_id=video_id,
             language=transcription_result["language"],
             transcript=transcription_result["transcript"],
             processing_time=duration,
-            file_size=file_size
-            # stats=dict(stats),
+            file_size=file_size,
         )
     except Exception as e:
-        # stats["errors_total"] += 1
-
         duration = time.time() - start
-        # processing_times.append(duration)
-        # stats["last_processing_time"] = duration
-        # stats["avg_processing_time"] = 0 #sum(processing_times) / len(processing_times)
-
-        # Общий обработчик ошибок для перехвата исключений из сервисов.
         raise HTTPException(status_code=500, detail=f"Произошла ошибка: {str(e)}")
