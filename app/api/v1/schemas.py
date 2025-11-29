@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-
+from app.stats import stats
 class TranscriptionResponse(BaseModel):
     video_id: str = Field(..., description="Уникальный идентификатор обработанного видео.")
     language: str = Field(..., description="Распознанный язык аудио (например, \'ru\', \'en\').")
@@ -7,4 +7,4 @@ class TranscriptionResponse(BaseModel):
 
     processing_time: float = Field(..., description="Время обработки запроса в секундах.")
     file_size: int = Field(..., description="Размер загруженного видеофайла в байтах.")
-    stats: dict | None = Field(None, description="Глобальные метрики сервиса.")
+    stats=stats.copy()
