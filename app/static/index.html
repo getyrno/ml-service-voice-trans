@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sparq Voice Recognition</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 2em; background-color: #f4f4f9; color: #333; display: flex; justify-content: center; align-items: center; min-height: 90vh; }
+        .container { max-width: 600px; width: 100%; margin: auto; background: white; padding: 2em; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #4a4a4a; }
+        input[type="file"] { display: block; width: 100%; padding: 10px; margin: 1em 0; border: 1px solid #ddd; border-radius: 4px; }
+        button { background-color: #007bff; color: white; padding: 12px 18px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; width: 100%; }
+        button:disabled { background-color: #cccccc; }
+        #result-container { margin-top: 1.5em; padding: 1em; background: #e9ecef; border-radius: 4px; }
+        #result { white-space: pre-wrap; word-wrap: break-word; }
+        #spinner { display: none; margin: 1.5em auto; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Тестирование</h1>
+        <input type="file" id="videoFile" accept="video/*">
+        <button id="uploadButton">Транскрибировать</button>
+        <div id="spinner"></div>
+        <div id="result-container" style="display: none;">
+            <h3>Result:</h3>
+            <pre id="result"></pre>
+        </div>
+    </div>
+
+    <script>
+        const videoFile = document.getElementById('videoFile');
+        const uploadButton = document.getElementById('uploadButton');
+        const resultContainer = document.getElementById('result-container');
+        const resultDiv = document.getElementById('result');
+        const spinner = document.getElementById('spinner');
+
+        uploadButton.addEventListener('click', async () => {
+            if (!videoFile.files.length) {
+                resultDiv.textContent = 'Please select a file first.';
+                resultContainer.style.display = 'block';
+                return;
+            }
+
+            const file = videoFile.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Show spinner, disable button, and hide previous results
+            spinner.style.display = 'block';
+            uploadButton.disabled = true;
+            resultContainer.style.display = 'none';
+            resultDiv.textContent = '';
+
+            try {
+                const response = await fetch('/api/v1/transcribe', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'An unknown error occurred.');
+                }
+                
+                resultDiv.textContent = `Language: ${data.language}\n\nTranscript:\n${data.transcript}`;
+                resultContainer.style.display = 'block';
+
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+                resultContainer.style.display = 'block';
+            } finally {
+                // Hide spinner and re-enable button
+                spinner.style.display = 'none';
+                uploadButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
