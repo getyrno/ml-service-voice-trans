@@ -224,7 +224,19 @@
                 return;
             }
 
-            // дальше твоя логика: показываем transcript / metrics ...
+            // === Отображаем расшифровку ===
+            transcriptDiv.textContent = data.transcript || "(пусто)";
+            transcriptSection.style.display = 'block';
+
+            // === Отображаем метрики ===
+            metricsTable.innerHTML = `
+                <tr><td class="metric-label">Язык</td><td>${data.language}</td></tr>
+                <tr><td class="metric-label">Время обработки</td><td>${data.processing_time.toFixed(3)} сек</td></tr>
+                <tr><td class="metric-label">Размер файла</td><td>${data.file_size} байт</td></tr>
+                <tr><td class="metric-label">Video ID</td><td>${data.video_id}</td></tr>
+            `;
+            metricsSection.style.display = 'block';
+
         } catch (err) {
             alert("Ошибка сети: " + err.message);
         }
