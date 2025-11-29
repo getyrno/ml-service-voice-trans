@@ -208,30 +208,27 @@
                 body: formData,
             });
 
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.detail || 'Ошибка.');
+            const rawText = await response.text();   // <-- читаем ТЕКСТ
+            let data;
 
-            transcriptDiv.textContent = data.transcript;
-            transcriptSection.style.display = 'block';
-
-            metricsTable.innerHTML = `
-                <tr><td class="metric-label">Язык</td><td>${data.language}</td></tr>
-                <tr><td class="metric-label">Время обработки</td><td>${data.processing_time.toFixed(3)} сек</td></tr>
-                <tr><td class="metric-label">Размер файла</td><td>${data.file_size} байт</td></tr>
-                <tr><td class="metric-label">Video ID</td><td>${data.video_id}</td></tr>
-            `;
-            metricsSection.style.display = 'block';
-
-            if (data.stats) {
-                statsTable.innerHTML = Object.entries(data.stats)
-                    .map(([k, v]) => `<tr><td class="metric-label">${k}</td><td>${v}</td></tr>`)
-                    .join('');
-                statsSection.style.display = 'block';
+            try {
+                data = JSON.parse(rawText);          // <-- пытаемся распарсить как JSON
+            } catch {
+                alert("Сервер вернул не JSON:\n" + rawText);
+                return;
             }
 
+            if (!response.ok) {
+                const msg = data.detail || data.error || 'Неизвестная ошибка';
+                alert("Ошибка: " + msg);
+                return;
+            }
+
+            // дальше твоя логика: показываем transcript / metrics ...
         } catch (err) {
-            alert("Ошибка: " + err.message);
-        } finally {
+            alert("Ошибка сети: " + err.message);
+        }
+        finally {
             spinner.style.display = 'none';
             uploadButton.disabled = false;
         }

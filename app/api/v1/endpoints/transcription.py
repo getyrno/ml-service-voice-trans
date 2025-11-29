@@ -61,11 +61,9 @@ async def transcribe_video(file: UploadFile = File(..., description="Видео�
             video_id=video_id,
             language=transcription_result["language"],
             transcript=transcription_result["transcript"],
-
-            # ✔ добавляем недостающие поля
             processing_time=duration,
             file_size=file_size,
-            stats=stats,
+            stats=dict(stats),
         )
     except Exception as e:
         stats["errors_total"] += 1
