@@ -5,37 +5,35 @@ from fastapi import UploadFile
 
 async def extract_audio(video_file: UploadFile) -> str:
     """
-    Извлекает аудио из видеофайла и сохраняет его как временный WAV-файл.
-
-    Args:
-        video_file: Загруженный видеофайл.
-
-    Returns:
-        Путь к временному аудиофайлу.
+    Извлекает аудио из видеофайла и сохраняет его как временный WAV-файл (16kHz mono).
+    Безопасно для больших файлов.
     """
-    # Создаем временный файл для хранения загруженного видео.
+
+    # Читаем видео потоково (без загрузки всего файла в память)
     with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(video_file.filename)[1]) as temp_video_file:
-        content = await video_file.read()
-        temp_video_file.write(content)
+        chunk_size = 1024 * 1024  # 1MB
+        while chunk := await video_file.read(chunk_size):
+            temp_video_file.write(chunk)
         temp_video_path = temp_video_file.name
 
-    # Создаем путь для вывода аудио.
-    audio_output_path = tempfile.mktemp(suffix=".wav")
+    # Создаем безопасный временный WAV-файл
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as audio_file:
+        audio_output_path = audio_file.name
 
     try:
         # Используем ffmpeg для извлечения аудио, конвертируем в 16кГц моно WAV.
         ffmpeg.input(temp_video_path).output(
             audio_output_path, 
+            format="wav",
             acodec='pcm_s16le', 
             ac=1, 
             ar='16000'
-        ).run(quiet=True, overwrite_output=True)
+        ).run(capture_stdout=True, capture_stderr=True)
     except Exception as e:
-        # Удаляем видеофайл в случае ошибки.
-        os.remove(temp_video_path)
+        if os.path.exists(audio_output_path):
+            os.remove(audio_output_path)
         raise e
     finally:
-        # Всегда удаляем временный видеофайл.
         if os.path.exists(temp_video_path):
             os.remove(temp_video_path)
 
