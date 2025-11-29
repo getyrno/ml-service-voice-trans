@@ -53,7 +53,7 @@ async def transcribe_video(file: UploadFile = File(..., description="Видео�
         duration = time.time() - start
         # processing_times.append(duration)
         stats["last_processing_time"] = duration
-        stats["avg_processing_time"] = sum(processing_times) / len(processing_times)
+        stats["avg_processing_time"] = 0 #sum(processing_times) / len(processing_times)
 
         # Форматируем и возвращаем ответ.
         return TranscriptionResponse(
@@ -65,9 +65,9 @@ async def transcribe_video(file: UploadFile = File(..., description="Видео�
         stats["errors_total"] += 1
 
         duration = time.time() - start
-        processing_times.append(duration)
+        # processing_times.append(duration)
         stats["last_processing_time"] = duration
-        stats["avg_processing_time"] = sum(processing_times) / len(processing_times)
+        stats["avg_processing_time"] = 0 #sum(processing_times) / len(processing_times)
 
         # Общий обработчик ошибок для перехвата исключений из сервисов.
         raise HTTPException(status_code=500, detail=f"Произошла ошибка: {str(e)}")
