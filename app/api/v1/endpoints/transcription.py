@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import Request, APIRouter, UploadFile, File, HTTPException
 from app.api.v1.schemas import TranscriptionResponse
 from app.services import audio_service, transcription_service
 import uuid
@@ -9,7 +9,13 @@ import time
 router = APIRouter()
 
 @router.post("/transcribe", response_model=TranscriptionResponse)
-async def transcribe_video(file: UploadFile = File(..., description="Видеофайл для транскрибации.")):
+async def transcribe_video(request: Request,file: UploadFile = File(..., description="Видеофайл для транскрибации.")):
+    content_length = request.headers.get("content-length")
+    # получаем размер файла, не читая его содержимое
+    file.file.seek(0, 2)   # переходим в конец файла
+    file_size = file.file.tell()  # узнаём размер в байтах
+    file.file.seek(0)      # возвращаемся в начало, чтобы extract_audio работал правильно
+
     """
     Принимает видеофайл, извлекает из него аудиодорожку, транскрибирует речь и возвращает результат в виде текста.
 
@@ -29,14 +35,12 @@ async def transcribe_video(file: UploadFile = File(..., description="Видео�
         )
     
     # Проверка на пустой файл.
-    contents = await file.read()
+    chunk = await file.read(1024)
     await file.seek(0)
-    if not contents:
-        # stats["empty_files_total"] += 1
-        # stats["errors_total"] += 1
-        raise HTTPException(status_code=400, detail="Загруженный файл пуст.")
-    file_size = len(contents)
 
+    if not chunk:
+        raise HTTPException(400, "Файл пустой.")
+    
     try:
         # Извлекаем аудио из загруженного видеофайла.
         audio_path = await audio_service.extract_audio(file)
