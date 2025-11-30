@@ -1,5 +1,5 @@
 import os
-import whisper
+# import whisper
 import asyncio
 import concurrent.futures
 from faster_whisper import WhisperModel
