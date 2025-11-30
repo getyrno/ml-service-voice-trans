@@ -1,20 +1,15 @@
 FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04
 
-# Basic utilities
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+# 1 RUN вместо трёх, + build-essential, pkg-config, ffmpeg, av-* dev
 RUN apt-get update && apt-get install -y \
+    python3 \
     python3-pip \
     python3-dev \
-    ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-COPY requirements.txt .
-
-RUN apt-get update && apt-get install -y \
-    pkg-config \
-    && rm -rf /var/lib/apt/lists/*
-RUN apt-get update && apt-get install -y \
+    build-essential \
     pkg-config \
     ffmpeg \
     libavformat-dev \
@@ -24,10 +19,17 @@ RUN apt-get update && apt-get install -y \
     libswscale-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# ОБЯЗАТЕЛЬНО: обновляем pip, setuptools, wheel, чтобы не ловить баги старого pip
+RUN python3 -m pip install --upgrade pip setuptools wheel
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+# ставим зависимости уже новым pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./app /app/app
-COPY ./app/static /app/app/static
 
 EXPOSE 8000
 
