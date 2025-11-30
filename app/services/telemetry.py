@@ -33,3 +33,4 @@ def send_transcribe_event(payload: Dict[str, Any]) -> None:
     except Exception:
         # можно логировать в stdout, если захочешь
         pass
+    
