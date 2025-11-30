@@ -1,25 +1,22 @@
-# ASGI
-fastapi
-uvicorn[standard]
+fastapi==0.115.2
+uvicorn[standard]==0.30.1
 
-# File uploads
-python-multipart
+python-multipart==0.0.9
+ffmpeg-python==0.2.0
 
-# Whisper (GPU-версия через Faster-Whisper)
-faster-whisper
+# Основные зависимости
+faster-whisper==1.0.0
+ctranslate2==4.4.0
 
-# FFmpeg wrapper
-ffmpeg-python
+# Для отправки событий
+requests==2.31.0
 
-# Telemetry / Utils / HTTP
-httpx
+# Тесты
+pytest==8.3.2
+httpx==0.27.2
 
-# Testing
-pytest
+# PyTorch CPU для CTranslate2 (не нужен GPU!)
+torch==2.2.1 --index-url https://download.pytorch.org/whl/cpu
 
-# PyTorch GPU (CUDA 12.1) — install manually on Windows
-# pip install torch==2.2.1+cu121 torchvision==0.17.1+cu121 torchaudio==2.2.1+cu121 -f https://download.pytorch.org/whl/cu121/torch_stable.html
-torch==2.2.1+cu121
-torchvision==0.17.1+cu121
-torchaudio==2.2.1+cu121
--f https://download.pytorch.org/whl/cu121/torch_stable.html
+# NumPy фикс
+numpy<2
