@@ -2,7 +2,7 @@ import os
 import whisper
 import asyncio
 import concurrent.futures
-
+from faster_whisper import WhisperModel
 from app.core import config
 
 model = None
@@ -13,13 +13,13 @@ current_task: asyncio.Future | None = None
 
 
 def load_model():
-    """Ленивая загрузка Whisper."""
+    """Ленивая загрузка FasterWhisper."""
     global model, _model_name
     if model is None:
         _model_name = config.WHISPER_MODEL
-        print(f"Загрузка модели Whisper ({_model_name})...")
-        model = whisper.load_model(_model_name)
-        print("Whisper загружен.")
+        print(f"Загружаем FasterWhisper: {_model_name} (fp16, cuda)...")
+        model = WhisperModel(_model_name, device="cuda", compute_type="float16")
+        print("Модель успешно загружена.")
 
 
 def get_model_name() -> str:

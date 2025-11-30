@@ -1,7 +1,25 @@
+# ASGI
 fastapi
-uvicorn
+uvicorn[standard]
+
+# File uploads
 python-multipart
-openai-whisper
+
+# Whisper (GPU-версия через Faster-Whisper)
+faster-whisper
+
+# FFmpeg wrapper
 ffmpeg-python
-pytest
+
+# Telemetry / Utils / HTTP
 httpx
+
+# Testing
+pytest
+
+# PyTorch GPU (CUDA 12.1) — install manually on Windows
+# pip install torch==2.2.1+cu121 torchvision==0.17.1+cu121 torchaudio==2.2.1+cu121 -f https://download.pytorch.org/whl/cu121/torch_stable.html
+torch==2.2.1+cu121
+torchvision==0.17.1+cu121
+torchaudio==2.2.1+cu121
+-f https://download.pytorch.org/whl/cu121/torch_stable.html
