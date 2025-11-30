@@ -4,19 +4,11 @@ uvicorn[standard]==0.30.1
 python-multipart==0.0.9
 ffmpeg-python==0.2.0
 
-# Основные зависимости
 faster-whisper==1.0.0
 ctranslate2==4.4.0
 
-# Для отправки событий
 requests==2.31.0
-
-# Тесты
-pytest==8.3.2
 httpx==0.27.2
+pytest==8.3.2
 
-# PyTorch CPU для CTranslate2 (не нужен GPU!)
-torch==2.2.1 --index-url https://download.pytorch.org/whl/cpu
-
-# NumPy фикс
 numpy<2
