@@ -1,0 +1,12 @@
+services:
+  api:
+    build: .
+    container_name: ml-service-voice-trans
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      TZ: Europe/Moscow
+      ORCHESTRATOR_URL: http://147.45.235.55:9100/events/transcribe
+      ENV_NAME: gpu-prod
+      CLIENT_NAME: home-pc
