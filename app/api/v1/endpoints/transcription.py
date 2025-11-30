@@ -1,23 +1,43 @@
-# app/api/v1/endpoints/transcription.py
+import asyncio
 from fastapi import Request, APIRouter, UploadFile, File, HTTPException, BackgroundTasks
 from app.api.v1.schemas import TranscriptionResponse
 from app.services import audio_service, transcription_service
 from app.services.telemetry import send_transcribe_event
 import uuid
 import time
+import os
+import signal
 
 router = APIRouter()
 
-MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024  # 500 МБ
+MAX_FILE_SIZE_BYTES = 1000 * 1024 * 1024  # 1000 MB
+
+
+async def ensure_connected(request: Request):
+    """
+    Проверяем, не оборвал ли клиент соединение.
+    Если да — убиваем FFmpeg и Whisper.
+    """
+    if await request.is_disconnected():
+
+        # === FFmpeg: внешний процесс ===
+        if getattr(audio_service, "current_proc", None):
+            proc = audio_service.current_proc
+            try:
+                proc.kill()
+            except Exception:
+                pass
+
+        # === Whisper: задача в executor ===
+        if getattr(transcription_service, "current_task", None):
+            task = transcription_service.current_task
+            if task and not task.done():
+                task.cancel()
+
+        raise HTTPException(499, "Клиент отключился")
+
 
 def get_client_ip(request: Request) -> str:
-    """
-    Возвращает IP клиента, учитывая возможный reverse proxy.
-    Приоритет:
-    1) X-Real-IP
-    2) первый IP из X-Forwarded-For
-    3) request.client.host
-    """
     x_real_ip = request.headers.get("x-real-ip")
     if x_real_ip:
         return x_real_ip
@@ -29,10 +49,8 @@ def get_client_ip(request: Request) -> str:
         if ip:
             return ip
 
-    if request.client:
-        return request.client.host
+    return request.client.host if request.client else "unknown"
 
-    return "unknown"
 
 @router.post("/transcribe", response_model=TranscriptionResponse)
 async def transcribe_video(
@@ -42,40 +60,45 @@ async def transcribe_video(
 ):
     start = time.time()
 
+    # Проверка MIME-типа
     if not file.content_type or not file.content_type.startswith("video/"):
         raise HTTPException(
             status_code=400,
-            detail=f"Неверный тип файла: {file.content_type}. Пожалуйста, загрузите видео.",
+            detail=f"Неверный тип файла: {file.content_type}. Загрузите видео."
         )
 
-    # размер файла
+    # Размер файла
     file.file.seek(0, 2)
     file_size = file.file.tell()
     file.file.seek(0)
 
     if file_size == 0:
-        raise HTTPException(400, "Загруженный файл пуст.")
+        raise HTTPException(400, "Файл пуст.")
 
     if file_size > MAX_FILE_SIZE_BYTES:
-        raise HTTPException(
-            status_code=400,
-            detail="Максимальный размер файла — 500 МБ."
-        )
+        raise HTTPException(400, "Максимальный размер файла — 1000 МБ.")
 
     video_id = str(uuid.uuid4())
     request_id = str(uuid.uuid4())
     client_ip = get_client_ip(request)
 
     try:
-        # 1) ffmpeg: извлекаем аудио и получаем длительность
+        # ---------- CLIENT CHECK ----------
+        await ensure_connected(request)
+
+        # ---------- 1) Extract audio ----------
         audio_path, duration_sec, ffmpeg_ms = await audio_service.extract_audio(file)
 
-        # 2) whisper
+        await ensure_connected(request)
+
+        # ---------- 2) Whisper ----------
         t_transcribe_start = time.time()
-        transcription_result = transcription_service.transcribe_audio(audio_path)
+        transcription_result = await transcription_service.transcribe_audio_async(audio_path)
         transcribe_ms = int((time.time() - t_transcribe_start) * 1000)
 
-        # 3) общая латентность
+        await ensure_connected(request)
+
+        # ---------- Telemetry ----------
         total_ms = int((time.time() - start) * 1000)
 
         telemetry_payload = {
@@ -99,16 +122,22 @@ async def transcribe_video(
 
         background_tasks.add_task(send_transcribe_event, telemetry_payload)
 
-        duration_processing = time.time() - start
-
+        # ---------- Response ----------
         return TranscriptionResponse(
             video_id=video_id,
             language=transcription_result["language"],
             transcript=transcription_result["transcript"],
-            processing_time=duration_processing,
+            processing_time=time.time() - start,
             file_size=file_size,
             duration_sec=duration_sec,
         )
+
+    except HTTPException:
+        raise
+
+    except asyncio.CancelledError:
+        raise HTTPException(499, "Транскрибация отменена (клиент отключился).")
+
     except Exception as e:
         total_ms = int((time.time() - start) * 1000)
 
@@ -130,6 +159,6 @@ async def transcribe_video(
             "error_message": str(e),
             "client_ip": client_ip
         }
-        background_tasks.add_task(send_transcribe_event, error_payload)
 
-        raise HTTPException(status_code=500, detail=f"Произошла ошибка: {str(e)}")
+        background_tasks.add_task(send_transcribe_event, error_payload)
+        raise HTTPException(500, f"Произошла ошибка: {str(e)}")

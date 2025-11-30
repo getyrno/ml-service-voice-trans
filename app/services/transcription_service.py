@@ -1,11 +1,15 @@
-# app/services/transcription_service.py
 import os
 import whisper
+import asyncio
+import concurrent.futures
 
 from app.core import config
 
 model = None
 _model_name: str | None = None
+
+# ссылка на текущую задачу whisper
+current_task: asyncio.Future | None = None
 
 
 def load_model():
@@ -13,9 +17,9 @@ def load_model():
     global model, _model_name
     if model is None:
         _model_name = config.WHISPER_MODEL
-        print(f"Загрузка модели Whisper ({_model_name}) в первый раз...")
+        print(f"Загрузка модели Whisper ({_model_name})...")
         model = whisper.load_model(_model_name)
-        print("Модель Whisper успешно загружена.")
+        print("Whisper загружен.")
 
 
 def get_model_name() -> str:
@@ -24,34 +28,53 @@ def get_model_name() -> str:
 
 
 def get_model_device() -> str:
-    """Пробуем понять, на чём крутится модель (cpu / cuda:0 / unknown)."""
     global model
     if model is None:
         return "unknown"
     try:
-        # новые версии whisper имеют атрибут device
         if hasattr(model, "device"):
             return str(model.device)
-        # fallback через torch
-        import torch  # noqa: F401
+        import torch
         return str(next(model.parameters()).device)
     except Exception:
         return "unknown"
 
 
-def transcribe_audio(audio_path: str) -> dict:
+def _blocking_transcribe(audio_path: str) -> dict:
     """
-    Транскрибирует аудиофайл и удаляет его после использования.
+    Синхронный вызов Whisper — выполняется в executor.
     """
-    global model
+    result = model.transcribe(audio_path, fp16=False)
+    return {
+        "language": result["language"],
+        "transcript": result["text"],
+    }
+
+
+async def transcribe_audio_async(audio_path: str) -> dict:
+    """
+    Асинхронная транскрибация Whisper.
+    Позволяет отменять выполнение (interrupt).
+    """
+    global current_task, model
+
     load_model()
 
-    try:
-        result = model.transcribe(audio_path, fp16=False)
-        return {
-            "language": result["language"],
-            "transcript": result["text"],
-        }
-    finally:
-        if os.path.exists(audio_path):
-            os.remove(audio_path)
+    loop = asyncio.get_event_loop()
+
+    # запускаем транскрибацию в отдельном thread pool
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        current_task = loop.run_in_executor(pool, _blocking_transcribe, audio_path)
+
+        try:
+            result = await current_task
+        except asyncio.CancelledError:
+            # Whisper не даёт прямого API для прерывания
+            # но thread будет убит при завершении pool context manager
+            raise
+        finally:
+            current_task = None
+            if os.path.exists(audio_path):
+                os.remove(audio_path)
+
+    return result

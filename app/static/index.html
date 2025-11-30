@@ -361,7 +361,7 @@
             </div>
 
             <div class="file-hint">
-                Максимальный размер файла — <strong>500&nbsp;МБ</strong>.  
+                Максимальный размер файла — <strong>1000&nbsp;МБ</strong>.  
                 Для наилучшего качества используйте видео с чётким звуком.
             </div>
         </div>
@@ -404,7 +404,7 @@
     const fileSizeEl     = document.getElementById('fileSize');
     const fileDurationEl = document.getElementById('fileDuration');
 
-    const MAX_SIZE_BYTES = 500 * 1024 * 1024; // 500 MB
+    const MAX_SIZE_BYTES = 1000 * 1024 * 1024; // 1000 MB
     let selectedFileDurationSec = null;
 
     function formatBytes(bytes) {
@@ -459,11 +459,11 @@
         fileDurationEl.textContent = 'Длительность: —';
         selectedFileDurationSec = null;
 
-        // Проверяем лимит 500 МБ
+        // Проверяем лимит 1000 МБ
         if (file.size > MAX_SIZE_BYTES) {
             fileInfoEl.classList.add('file-error');
             uploadButton.disabled = true;
-            alert('Файл превышает максимальный размер 500 МБ. Пожалуйста, выберите другой файл.');
+            alert('Файл превышает максимальный размер 1000 МБ. Пожалуйста, выберите другой файл.');
         } else {
             fileInfoEl.classList.remove('file-error');
             uploadButton.disabled = false;
@@ -502,7 +502,7 @@
 
         // Дополнительная защита от больших файлов
         if (file.size > MAX_SIZE_BYTES) {
-            alert('Файл превышает максимальный размер 500 МБ. Пожалуйста, выберите другой файл.');
+            alert('Файл превышает максимальный размер 1000 МБ. Пожалуйста, выберите другой файл.');
             return;
         }
 
