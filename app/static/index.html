@@ -3,188 +3,495 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sparq Voice Recognition</title>
+    <title>Voice Recognition</title>
 
     <style>
-        /* === OS X — глобальный стиль === */
+        /* === Глобальный стиль в духе Apple === */
+        :root {
+            color-scheme: light;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
-            padding: 0;
-            background: #f5f5f7; /* Apple grey */
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", 
+            padding: 24px 16px;
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top left, #e8ecff 0, transparent 55%),
+                radial-gradient(circle at bottom right, #ffe9f0 0, transparent 55%),
+                #f5f5f7;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
                          "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
         }
 
-        /* === Центрированный Apple-блок === */
         .container {
-            width: 650px;
-            max-width: 90%;
-            background: #ffffffcc;
-            backdrop-filter: blur(20px); /* стекло Apple */
-            padding: 40px 45px;
-            border-radius: 18px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.12);
-            text-align: center;
-            animation: fadeIn 0.3s ease;
+            width: 100%;
+            max-width: 720px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(26px);
+            -webkit-backdrop-filter: blur(26px);
+            padding: 28px 22px 26px;
+            border-radius: 24px;
+            box-shadow:
+                0 24px 45px rgba(0, 0, 0, 0.14),
+                0 0 0 0.5px rgba(0, 0, 0, 0.04);
+            animation: fadeIn 0.25s ease-out;
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                padding: 32px 32px 30px;
+                border-radius: 26px;
+            }
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(12px); }
-            to   { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: translateY(10px) scale(0.99); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        h1 {
-            margin-top: 0;
-            margin-bottom: 25px;
-            font-weight: 600;
-            color: #1d1d1f; /* Apple black */
+        header {
+            text-align: left;
+            margin-bottom: 22px;
+        }
+
+        header h1 {
+            margin: 0 0 4px;
+            font-weight: 650;
+            color: #1d1d1f;
             letter-spacing: -0.4px;
-            font-size: 1.9em;
+            font-size: 1.7rem;
         }
 
-        /* === Inputs === */
+        header p {
+            margin: 0;
+            color: #6e6e73;
+            font-size: 0.95rem;
+        }
+
+        @media (min-width: 768px) {
+            header h1 {
+                font-size: 1.9rem;
+            }
+            header p {
+                font-size: 1rem;
+            }
+        }
+
+        /* === Карточка загрузки === */
+        .card {
+            background: #fbfbfd;
+            border-radius: 18px;
+            border: 1px solid #e5e5ea;
+            padding: 16px 16px 18px;
+        }
+
+        @media (min-width: 768px) {
+            .card {
+                padding: 18px 20px 20px;
+                display: flex;
+                gap: 16px;
+                align-items: center;
+            }
+        }
+
+        .file-area {
+            flex: 1;
+        }
+
+        .file-label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #3a3a3c;
+        }
+
+        .file-hint {
+            margin-top: 6px;
+            font-size: 0.8rem;
+            color: #8e8e93;
+        }
+
+        .file-hint strong {
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+
         input[type="file"] {
             width: 100%;
-            padding: 12px;
-            background: #fafafa;
+            padding: 10px 11px;
+            background: #ffffff;
             border: 1px solid #d2d2d7;
-            border-radius: 10px;
-            font-size: 15px;
+            border-radius: 12px;
+            font-size: 0.9rem;
             cursor: pointer;
             transition: 0.2s;
         }
 
         input[type="file"]:hover {
-            background: #f0f0f3;
+            background: #f4f4f6;
+            border-color: #b7b7c4;
         }
 
-        /* === Кнопка Apple style === */
+        /* === Информация о файле === */
+        .file-info {
+            margin-top: 10px;
+            padding: 10px 11px;
+            border-radius: 11px;
+            background: #f5f5f7;
+            border: 1px solid transparent;
+            font-size: 0.85rem;
+        }
+
+        .file-info.empty {
+            opacity: 0.7;
+        }
+
+        .file-info.file-error {
+            border-color: #ff3b30;
+            background: #fff5f5;
+        }
+
+        .file-name {
+            font-weight: 500;
+            color: #1d1d1f;
+            margin-bottom: 3px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            color: #8e8e93;
+        }
+
+        .file-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #c7c7cc;
+        }
+
+        /* === Кнопка === */
+        .actions {
+            margin-top: 14px;
+        }
+
+        @media (min-width: 768px) {
+            .actions {
+                margin-top: 0;
+                width: 210px;
+                text-align: right;
+            }
+        }
+
         button {
-            margin-top: 20px;
             width: 100%;
-            padding: 14px;
-            font-size: 16px;
+            padding: 12px 14px;
+            font-size: 0.95rem;
             border: none;
-            border-radius: 10px;
+            border-radius: 999px;
             cursor: pointer;
             font-weight: 600;
-            color: white;
-            background: #0071e3; /* Apple blue */
-            transition: background 0.25s ease, transform 0.15s ease;
+            color: #ffffff;
+            background: linear-gradient(135deg, #0071e3, #0f8fff);
+            box-shadow: 0 8px 16px rgba(0, 122, 255, 0.35);
+            transition:
+                background 0.2s ease,
+                box-shadow 0.17s ease,
+                transform 0.12s ease;
         }
 
-        button:hover {
-            background: #007aff;
+        button:hover:not(:disabled) {
+            background: linear-gradient(135deg, #007aff, #2f9bff);
+            box-shadow: 0 11px 20px rgba(0, 122, 255, 0.45);
         }
 
-        button:active {
-            transform: scale(0.98);
+        button:active:not(:disabled) {
+            transform: translateY(1px) scale(0.99);
+            box-shadow: 0 5px 12px rgba(0, 122, 255, 0.25);
         }
 
         button:disabled {
-            background: #b3b3b3;
+            background: #c7c7cc;
+            box-shadow: none;
+            cursor: default;
         }
 
-        /* === Спиннер Apple === */
+        /* === Индикатор загрузки === */
+        .loader-wrap {
+            margin-top: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 24px;
+            font-size: 0.85rem;
+            color: #8e8e93;
+        }
+
         #spinner {
             display: none;
-            margin: 25px auto;
-            width: 42px;
-            height: 42px;
-            border: 4px solid #e0e0e0;
-            border-top: 4px solid #007aff;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            border: 3px solid rgba(0, 0, 0, 0.07);
+            border-top-color: #007aff;
+            animation: spin 0.7s linear infinite;
         }
+
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        /* === Блоки результата === */
+        /* === Секции результата === */
         .section {
-            text-align: left;
-            margin-top: 25px;
-            padding: 20px;
-            background: #fafafa;
-            border-radius: 14px;
-            border: 1px solid #e5e5e5;
+            margin-top: 20px;
+            padding: 18px 16px 17px;
+            background: #ffffff;
+            border-radius: 16px;
+            border: 1px solid #e5e5ea;
+        }
+
+        @media (min-width: 768px) {
+            .section {
+                padding: 20px 20px 18px;
+            }
         }
 
         .section h3 {
-            margin-top: 0;
+            margin: 0 0 10px;
             font-weight: 600;
             color: #1d1d1f;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.98rem;
+        }
+
+        .section h3 span {
+            font-size: 1.1rem;
         }
 
         .metric-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 15px;
+            margin-top: 8px;
+            font-size: 0.9rem;
         }
 
         .metric-table td {
-            padding: 8px 4px;
-            border-bottom: 1px solid #e4e4e7;
+            padding: 7px 0;
+            border-bottom: 1px solid #f1f1f3;
+        }
+
+        .metric-table tr:last-child td {
+            border-bottom: none;
         }
 
         .metric-label {
-            font-weight: 600;
-            width: 35%;
+            font-weight: 500;
+            width: 40%;
             color: #3a3a3c;
         }
 
         pre {
+            margin: 0;
             white-space: pre-wrap;
-            background: #f0f0f3;
-            padding: 16px;
+            word-wrap: break-word;
+            background: #f5f5f7;
+            padding: 12px 12px;
             border-radius: 12px;
-            font-size: 15px;
+            font-size: 0.9rem;
+            line-height: 1.45;
+            max-height: 320px;
+            overflow: auto;
+        }
+
+        @media (min-width: 768px) {
+            pre {
+                max-height: 420px;
+            }
+        }
+
+        /* Мелкие правки для очень маленьких экранов */
+        @media (max-width: 360px) {
+            header h1 {
+                font-size: 1.4rem;
+            }
+            .container {
+                padding: 20px 16px 18px;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <h1>Sparq Voice Recognition</h1>
+<div class="container">
+    <header>
+        <h1>Voice Recognition</h1>
+        <p>Загрузите видеофайл, чтобы получить быстрый и точный текст.</p>
+    </header>
 
-        <input type="file" id="videoFile" accept="video/*">
-        <button id="uploadButton">Транскрибировать</button>
+    <div class="card">
+        <div class="file-area">
+            <label class="file-label" for="videoFile">Видео для транскрибации</label>
+            <input type="file" id="videoFile" accept="video/*">
 
-        <div id="spinner"></div>
+            <div id="fileInfo" class="file-info empty">
+                <div id="fileName" class="file-name">Файл не выбран</div>
+                <div class="file-meta">
+                    <span id="fileSize">Размер: —</span>
+                    <span class="dot"></span>
+                    <span id="fileDuration">Длительность: —</span>
+                </div>
+            </div>
 
-        <div id="transcript-section" class="section" style="display: none;">
-            <h3>📝 Расшифровка</h3>
-            <pre id="transcript"></pre>
+            <div class="file-hint">
+                Максимальный размер файла — <strong>500&nbsp;МБ</strong>.  
+                Для наилучшего качества используйте видео с чётким звуком.
+            </div>
         </div>
 
-        <div id="metrics-section" class="section" style="display: none;">
-            <h3>📊 Метрики запроса</h3>
-            <table class="metric-table" id="metrics-table"></table>
+        <div class="actions">
+            <button id="uploadButton">Транскрибировать</button>
         </div>
-
-        <!-- <div id="stats-section" class="section" style="display: none;">
-            <h3>📈 Общая статистика работы сервиса</h3>
-            <table class="metric-table" id="stats-table"></table>
-        </div> -->
     </div>
 
+    <div class="loader-wrap">
+        <div id="spinner"></div>
+        <div id="loaderText" style="display:none;">Идёт транскрибация…</div>
+    </div>
+
+    <div id="transcript-section" class="section" style="display: none;">
+        <h3><span>📝</span> Расшифровка</h3>
+        <pre id="transcript"></pre>
+    </div>
+
+    <div id="metrics-section" class="section" style="display: none;">
+        <h3><span>📊</span> Метрики запроса</h3>
+        <table class="metric-table" id="metrics-table"></table>
+    </div>
+</div>
+
 <script>
-    const videoFile = document.getElementById('videoFile');
-    const uploadButton = document.getElementById('uploadButton');
-    const spinner = document.getElementById('spinner');
+    const videoFile     = document.getElementById('videoFile');
+    const uploadButton  = document.getElementById('uploadButton');
+    const spinner       = document.getElementById('spinner');
+    const loaderText    = document.getElementById('loaderText');
 
     const transcriptSection = document.getElementById('transcript-section');
-    const transcriptDiv = document.getElementById('transcript');
+    const transcriptDiv     = document.getElementById('transcript');
 
     const metricsSection = document.getElementById('metrics-section');
-    const metricsTable = document.getElementById('metrics-table');
+    const metricsTable   = document.getElementById('metrics-table');
 
-    // const statsSection = document.getElementById('stats-section');
-    // const statsTable = document.getElementById('stats-table');
+    const fileInfoEl     = document.getElementById('fileInfo');
+    const fileNameEl     = document.getElementById('fileName');
+    const fileSizeEl     = document.getElementById('fileSize');
+    const fileDurationEl = document.getElementById('fileDuration');
 
+    const MAX_SIZE_BYTES = 500 * 1024 * 1024; // 500 MB
+    let selectedFileDurationSec = null;
+
+    function formatBytes(bytes) {
+        if (!bytes && bytes !== 0) return '—';
+        const mb = bytes / (1024 * 1024);
+        if (mb < 1) {
+            const kb = bytes / 1024;
+            return kb.toFixed(1) + ' КБ';
+        }
+        if (mb > 1024) {
+            const gb = mb / 1024;
+            return gb.toFixed(2) + ' ГБ';
+        }
+        return mb.toFixed(1) + ' МБ';
+    }
+
+    function formatDuration(seconds) {
+        if (seconds == null || !isFinite(seconds)) return '—';
+        const total = Math.round(seconds);
+        const h = Math.floor(total / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        const s = total % 60;
+
+        if (h > 0) {
+            return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+        return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function resetFileInfo() {
+        fileInfoEl.classList.add('empty');
+        fileInfoEl.classList.remove('file-error');
+        fileNameEl.textContent     = 'Файл не выбран';
+        fileSizeEl.textContent     = 'Размер: —';
+        fileDurationEl.textContent = 'Длительность: —';
+        selectedFileDurationSec    = null;
+        uploadButton.disabled      = false;
+    }
+
+    // === Обновление информации о файле и получение длительности ===
+    videoFile.addEventListener('change', () => {
+        if (!videoFile.files.length) {
+            resetFileInfo();
+            return;
+        }
+
+        const file = videoFile.files[0];
+
+        fileInfoEl.classList.remove('empty');
+        fileNameEl.textContent = file.name || 'Без имени';
+        fileSizeEl.textContent = 'Размер: ' + formatBytes(file.size);
+        fileDurationEl.textContent = 'Длительность: —';
+        selectedFileDurationSec = null;
+
+        // Проверяем лимит 500 МБ
+        if (file.size > MAX_SIZE_BYTES) {
+            fileInfoEl.classList.add('file-error');
+            uploadButton.disabled = true;
+            alert('Файл превышает максимальный размер 500 МБ. Пожалуйста, выберите другой файл.');
+        } else {
+            fileInfoEl.classList.remove('file-error');
+            uploadButton.disabled = false;
+        }
+
+        // Считываем длительность через временный video-элемент
+        try {
+            const url = URL.createObjectURL(file);
+            const tempVideo = document.createElement('video');
+            tempVideo.preload = 'metadata';
+            tempVideo.src = url;
+
+            tempVideo.onloadedmetadata = () => {
+                URL.revokeObjectURL(url);
+                selectedFileDurationSec = tempVideo.duration;
+                fileDurationEl.textContent = 'Длительность: ' + formatDuration(tempVideo.duration);
+            };
+
+            tempVideo.onerror = () => {
+                URL.revokeObjectURL(url);
+                // Оставляем длительность "—"
+            };
+        } catch (e) {
+            // Молча игнорируем, без длительности
+        }
+    });
+
+    // === Отправка файла и расчёт времени загрузки до сервиса ===
     uploadButton.addEventListener('click', async () => {
         if (!videoFile.files.length) {
             alert('Выберите файл.');
@@ -192,27 +499,40 @@
         }
 
         const file = videoFile.files[0];
+
+        // Дополнительная защита от больших файлов
+        if (file.size > MAX_SIZE_BYTES) {
+            alert('Файл превышает максимальный размер 500 МБ. Пожалуйста, выберите другой файл.');
+            return;
+        }
+
         const formData = new FormData();
         formData.append('file', file);
 
-        spinner.style.display = 'block';
+        spinner.style.display = 'inline-block';
+        loaderText.style.display = 'inline';
         uploadButton.disabled = true;
 
         transcriptSection.style.display = 'none';
-        metricsSection.style.display = 'none';
-        // statsSection.style.display = 'none';
+        metricsSection.style.display    = 'none';
+
+        // метка клиента — начало запроса
+        const tClientStart = performance.now();
+        let tClientEnd;
 
         try {
             const response = await fetch('/api/v1/transcribe', {
                 method: 'POST',
                 body: formData,
             });
+            // метка клиента — ответ получен
+            tClientEnd = performance.now();
 
-            const rawText = await response.text();   // <-- читаем ТЕКСТ
+            const rawText = await response.text();
             let data;
 
             try {
-                data = JSON.parse(rawText);          // <-- пытаемся распарсить как JSON
+                data = JSON.parse(rawText);
             } catch {
                 alert("Сервер вернул не JSON:\n" + rawText);
                 return;
@@ -224,24 +544,70 @@
                 return;
             }
 
-            // === Отображаем расшифровку ===
+            // === Расшифровка ===
             transcriptDiv.textContent = data.transcript || "(пусто)";
             transcriptSection.style.display = 'block';
 
-            // === Отображаем метрики ===
+            // === Расчёт времени загрузки до сервиса ===
+            let uploadSecondsText = '—';
+            if (typeof tClientEnd === 'number' && typeof data.processing_time === 'number') {
+                const clientTotalMs = tClientEnd - tClientStart;  // весь цикл запроса на клиенте
+                const processingMs  = data.processing_time * 1000; // серверная обработка
+                const uploadMs      = Math.max(0, clientTotalMs - processingMs); // примерно upload + сетевые задержки
+
+                uploadSecondsText = (uploadMs / 1000).toFixed(3) + ' сек';
+            }
+
+            // === Метрики ===
+            const serverDurationSec = typeof data.duration_sec === 'number'
+                ? data.duration_sec
+                : null;
+
+            const durationTextClient = selectedFileDurationSec != null
+                ? formatDuration(selectedFileDurationSec)
+                : '—';
+
+            const durationTextServer = serverDurationSec != null
+                ? formatDuration(serverDurationSec)
+                : '—';
+
             metricsTable.innerHTML = `
-                <tr><td class="metric-label">Язык</td><td>${data.language}</td></tr>
-                <tr><td class="metric-label">Время обработки</td><td>${data.processing_time.toFixed(3)} сек</td></tr>
-                <tr><td class="metric-label">Размер файла</td><td>${data.file_size} байт</td></tr>
-                <tr><td class="metric-label">Video ID</td><td>${data.video_id}</td></tr>
+                <tr>
+                    <td class="metric-label">Язык</td>
+                    <td>${data.language}</td>
+                </tr>
+                <tr>
+                    <td class="metric-label">Длительность (по файлу)</td>
+                    <td>${durationTextClient}</td>
+                </tr>
+                <tr>
+                    <td class="metric-label">Длительность (по серверу)</td>
+                    <td>${durationTextServer}</td>
+                </tr>
+                <tr>
+                    <td class="metric-label">Время обработки (на сервисе)</td>
+                    <td>${data.processing_time.toFixed(3)} сек</td>
+                </tr>
+                <tr>
+                    <td class="metric-label">Время загрузки до сервиса</td>
+                    <td>${uploadSecondsText}</td>
+                </tr>
+                <tr>
+                    <td class="metric-label">Размер файла</td>
+                    <td>${formatBytes(data.file_size)} (${data.file_size} байт)</td>
+                </tr>
+                <tr>
+                    <td class="metric-label">Video ID</td>
+                    <td>${data.video_id}</td>
+                </tr>
             `;
             metricsSection.style.display = 'block';
 
         } catch (err) {
             alert("Ошибка сети: " + err.message);
-        }
-        finally {
+        } finally {
             spinner.style.display = 'none';
+            loaderText.style.display = 'none';
             uploadButton.disabled = false;
         }
     });

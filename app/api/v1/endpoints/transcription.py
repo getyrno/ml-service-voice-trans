@@ -8,6 +8,31 @@ import time
 
 router = APIRouter()
 
+MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024  # 500 МБ
+
+def get_client_ip(request: Request) -> str:
+    """
+    Возвращает IP клиента, учитывая возможный reverse proxy.
+    Приоритет:
+    1) X-Real-IP
+    2) первый IP из X-Forwarded-For
+    3) request.client.host
+    """
+    x_real_ip = request.headers.get("x-real-ip")
+    if x_real_ip:
+        return x_real_ip
+
+    x_forwarded_for = request.headers.get("x-forwarded-for")
+    if x_forwarded_for:
+        # X-Forwarded-For: client, proxy1, proxy2...
+        ip = x_forwarded_for.split(",")[0].strip()
+        if ip:
+            return ip
+
+    if request.client:
+        return request.client.host
+
+    return "unknown"
 
 @router.post("/transcribe", response_model=TranscriptionResponse)
 async def transcribe_video(
@@ -15,11 +40,6 @@ async def transcribe_video(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(..., description="Видеофайл для транскрибации.")
 ):
-    """
-    Принимает видеофайл, извлекает аудио, транскрибирует и:
-      - возвращает результат клиенту,
-      - отправляет событие в оркестратор.
-    """
     start = time.time()
 
     if not file.content_type or not file.content_type.startswith("video/"):
@@ -36,11 +56,18 @@ async def transcribe_video(
     if file_size == 0:
         raise HTTPException(400, "Загруженный файл пуст.")
 
+    if file_size > MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail="Максимальный размер файла — 500 МБ."
+        )
+
     video_id = str(uuid.uuid4())
     request_id = str(uuid.uuid4())
+    client_ip = get_client_ip(request)
 
     try:
-        # 1) ffmpeg
+        # 1) ffmpeg: извлекаем аудио и получаем длительность
         audio_path, duration_sec, ffmpeg_ms = await audio_service.extract_audio(file)
 
         # 2) whisper
@@ -51,7 +78,6 @@ async def transcribe_video(
         # 3) общая латентность
         total_ms = int((time.time() - start) * 1000)
 
-        # 4) готовим payload для оркестратора
         telemetry_payload = {
             "request_id": request_id,
             "video_id": video_id,
@@ -68,24 +94,24 @@ async def transcribe_video(
             "success": True,
             "error_code": None,
             "error_message": None,
+            "client_ip": client_ip
         }
 
-        # отправляем в фоне, чтобы не тормозить ответ
         background_tasks.add_task(send_transcribe_event, telemetry_payload)
 
-        duration = time.time() - start
+        duration_processing = time.time() - start
 
         return TranscriptionResponse(
             video_id=video_id,
             language=transcription_result["language"],
             transcript=transcription_result["transcript"],
-            processing_time=duration,
+            processing_time=duration_processing,
             file_size=file_size,
+            duration_sec=duration_sec,
         )
     except Exception as e:
         total_ms = int((time.time() - start) * 1000)
 
-        # даже ошибки логируем в оркестратор
         error_payload = {
             "request_id": request_id,
             "video_id": video_id,
@@ -102,6 +128,7 @@ async def transcribe_video(
             "success": False,
             "error_code": "internal_error",
             "error_message": str(e),
+            "client_ip": client_ip
         }
         background_tasks.add_task(send_transcribe_event, error_payload)
 
