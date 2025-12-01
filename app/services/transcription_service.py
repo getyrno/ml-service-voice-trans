@@ -32,29 +32,37 @@ def get_model_device() -> str:
     if model is None:
         return "unknown"
     try:
+        # у WhisperModel нет .device как у torch.nn.Module, но на всякий случай:
         if hasattr(model, "device"):
             return str(model.device)
-        import torch
-        return str(next(model.parameters()).device)
     except Exception:
-        return "unknown"
+        pass
+    return "cuda"  # раз мы всегда создаём с device="cuda"
 
 
 def _blocking_transcribe(audio_path: str) -> dict:
     """
     Синхронный вызов Whisper — выполняется в executor.
     """
-    result =  model.transcribe(
+    # faster-whisper возвращает (segments, info)
+    segments, info = model.transcribe(
         audio_path,
         language="ru",
-        # beam_size=5,
-        task="transcribe"
+        task="transcribe",
+        # beam_size=5,  # можно вернуть, если нужно
     )
-    return {
-        "language": result["language"],
-        "transcript": result["text"],
-    }
 
+    # segments — это генератор, собираем текст
+    text_parts = []
+    for seg in segments:
+        text_parts.append(seg.text)
+
+    full_text = "".join(text_parts)
+
+    return {
+        "language": info.language or "ru",
+        "transcript": full_text,
+    }
 
 async def transcribe_audio_async(audio_path: str) -> dict:
     """
