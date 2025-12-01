@@ -1,4 +1,3 @@
-# app/services/audio_service.py
 import ffmpeg
 import tempfile
 import os
@@ -6,6 +5,59 @@ import time
 from typing import Tuple, Optional
 
 from fastapi import UploadFile
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
+# общий пул под ffmpeg — тут и будет "распараллеливание"
+FFMPEG_POOL = ThreadPoolExecutor(max_workers=4)  # можешь подстроить под CPU
+
+
+def _blocking_extract_audio(temp_video_path: str) -> tuple[str, Optional[float], int]:
+    """
+    Блокирующая часть: ffmpeg.probe + ffmpeg.run.
+    Выполняется в отдельном потоке, чтобы не блокировать event loop.
+    """
+    video_size = os.path.getsize(temp_video_path)
+    if video_size == 0:
+        os.remove(temp_video_path)
+        raise RuntimeError("Видео-файл пуст после копирования.")
+
+    # пробуем узнать длительность видео
+    try:
+        probe = ffmpeg.probe(temp_video_path)
+        duration_sec: Optional[float] = float(probe["format"]["duration"])
+    except Exception:
+        duration_sec = None
+
+    # создаём временный wav
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as audio_file:
+        audio_output_path = audio_file.name
+
+    t0 = time.time()
+    try:
+        (
+            ffmpeg
+            .input(temp_video_path)
+            .output(
+                audio_output_path,
+                format="wav",
+                acodec="pcm_s16le",
+                ac=1,
+                ar=16000,
+            )
+            .overwrite_output()
+            .run(capture_stdout=True, capture_stderr=True)
+        )
+
+        audio_size = os.path.getsize(audio_output_path)
+        if audio_size == 0:
+            raise RuntimeError("FFmpeg создал пустой WAV-файл.")
+    finally:
+        ffmpeg_ms = int((time.time() - t0) * 1000)
+        if os.path.exists(temp_video_path):
+            os.remove(temp_video_path)
+
+    return audio_output_path, duration_sec, ffmpeg_ms
 
 
 async def extract_audio(video_file: UploadFile) -> tuple[str, Optional[float], int]:
@@ -31,48 +83,12 @@ async def extract_audio(video_file: UploadFile) -> tuple[str, Optional[float], i
                 break
             temp_video_file.write(chunk)
 
-    video_size = os.path.getsize(temp_video_path)
-    if video_size == 0:
-        os.remove(temp_video_path)
-        raise RuntimeError("Видео-файл пуст после копирования.")
-
-    # пробуем узнать длительность видео
-    duration_sec: Optional[float]
-    try:
-        probe = ffmpeg.probe(temp_video_path)
-        duration_sec = float(probe["format"]["duration"])
-    except Exception:
-        duration_sec = None
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as audio_file:
-        audio_output_path = audio_file.name
-
-    t0 = time.time()
-    try:
-        (
-            ffmpeg
-            .input(temp_video_path)
-            .output(
-                audio_output_path,
-                format="wav",
-                acodec="pcm_s16le",
-                ac=1,
-                ar=16000,
-            )
-            .overwrite_output()
-            .run(capture_stdout=True, capture_stderr=True)
-        )
-
-        audio_size = os.path.getsize(audio_output_path)
-        if audio_size == 0:
-            raise RuntimeError("FFmpeg создал пустой WAV-файл.")
-    except Exception:
-        if os.path.exists(audio_output_path):
-            os.remove(audio_output_path)
-        raise
-    finally:
-        ffmpeg_ms = int((time.time() - t0) * 1000)
-        if os.path.exists(temp_video_path):
-            os.remove(temp_video_path)
+    # здесь ffmpeg/probe загоняем в отдельный поток
+    loop = asyncio.get_running_loop()
+    audio_output_path, duration_sec, ffmpeg_ms = await loop.run_in_executor(
+        FFMPEG_POOL,
+        _blocking_extract_audio,
+        temp_video_path,
+    )
 
     return audio_output_path, duration_sec, ffmpeg_ms
