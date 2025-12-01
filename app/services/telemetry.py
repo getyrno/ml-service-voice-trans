@@ -8,7 +8,7 @@ import requests
 
 ORCH_URL = os.getenv(
     "ORCHESTRATOR_URL",
-    "http://147.45.235.55:8080/events/transcribe",  # дефолт — твой VDS
+    "http://147.45.235.55:9100/events/transcribe",  # дефолт — твой VDS
 )
 ENV_NAME = os.getenv("ENV_NAME", "gpu-prod")
 CLIENT_NAME = os.getenv("CLIENT_NAME", "home-pc")
