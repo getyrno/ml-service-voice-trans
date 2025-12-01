@@ -49,8 +49,12 @@ def _blocking_transcribe(audio_path: str) -> dict:
         audio_path,
         language="ru",
         task="transcribe",
-        # beam_size=5,  # можно вернуть, если нужно
+        vad_filter=True,
+        vad_parameters=dict(
+            min_silence_duration_ms=400,
+        ),
     )
+
 
     # segments — это генератор, собираем текст
     text_parts = []
