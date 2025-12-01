@@ -44,7 +44,12 @@ def _blocking_transcribe(audio_path: str) -> dict:
     """
     Синхронный вызов Whisper — выполняется в executor.
     """
-    result = model.transcribe(audio_path, fp16=False)
+    result =  model.transcribe(
+        audio_path,
+        language="ru",
+        # beam_size=5,
+        task="transcribe"
+    )
     return {
         "language": result["language"],
         "transcript": result["text"],
