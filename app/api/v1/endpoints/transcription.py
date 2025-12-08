@@ -1,5 +1,5 @@
 import asyncio
-from fastapi import Request, APIRouter, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi import Request, APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Form
 from app.api.v1.schemas import TranscriptionResponse
 from app.services import audio_service, transcription_service
 from app.services.telemetry import send_transcribe_event
@@ -56,11 +56,12 @@ def get_client_ip(request: Request) -> str:
 async def transcribe_video(
     request: Request,
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(..., description="Видеофайл для транскрибации.")
+    file: UploadFile = File(..., description="Видеофайл для транскрибации."),
+    channel: str = Form("api"),             # <--- новое поле
+    user_id: str | None = Form(None),       # <--- новое поле
 ):
     start = time.time()
 
-    # Проверка MIME-типа
     if not file.content_type or not file.content_type.startswith("video/"):
         raise HTTPException(
             status_code=400,
@@ -81,7 +82,9 @@ async def transcribe_video(
     video_id = str(uuid.uuid4())
     request_id = str(uuid.uuid4())
     client_ip = get_client_ip(request)
-
+    
+    if user_id is None:
+        user_id = client_ip      # фоллбек: если не пришёл, берём IP
     try:
         # ---------- CLIENT CHECK ----------
         await ensure_connected(request)
@@ -117,7 +120,9 @@ async def transcribe_video(
             "success": True,
             "error_code": None,
             "error_message": None,
-            "client_ip": client_ip
+            "client_ip": client_ip,
+            "channel": channel,
+            "user_id": user_id
         }
 
         background_tasks.add_task(send_transcribe_event, telemetry_payload)

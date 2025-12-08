@@ -407,6 +407,24 @@
     const MAX_SIZE_BYTES = 1000 * 1024 * 1024; // 1000 MB
     let selectedFileDurationSec = null;
 
+    // ======= НОВОЕ: IP пользователя для user_id =======
+    let clientIp = null;
+
+    // Пытаемся получить внешний IP (user_id)
+    (async () => {
+        try {
+            const resp = await fetch('https://api.ipify.org?format=json');
+            if (resp.ok) {
+                const data = await resp.json();
+                clientIp = data.ip; // вот это пойдёт как user_id
+                console.log('Client IP detected:', clientIp);
+            }
+        } catch (e) {
+            console.warn('Не удалось получить IP пользователя:', e);
+        }
+    })();
+    // ================================================
+
     function formatBytes(bytes) {
         if (!bytes && bytes !== 0) return '—';
         const mb = bytes / (1024 * 1024);
@@ -484,10 +502,9 @@
 
             tempVideo.onerror = () => {
                 URL.revokeObjectURL(url);
-                // Оставляем длительность "—"
             };
         } catch (e) {
-            // Молча игнорируем, без длительности
+            // без длительности ок
         }
     });
 
@@ -509,6 +526,13 @@
         const formData = new FormData();
         formData.append('file', file);
 
+        // === НОВОЕ: канал и user_id ===
+        formData.append('channel', 'web_vr_test'); // фиксированный канал
+        if (clientIp) {
+            formData.append('user_id', clientIp);   // айпишник пользователя
+        }
+        // ==============================
+
         spinner.style.display = 'inline-block';
         loaderText.style.display = 'inline';
         uploadButton.disabled = true;
@@ -516,7 +540,6 @@
         transcriptSection.style.display = 'none';
         metricsSection.style.display    = 'none';
 
-        // метка клиента — начало запроса
         const tClientStart = performance.now();
         let tClientEnd;
 
@@ -525,7 +548,6 @@
                 method: 'POST',
                 body: formData,
             });
-            // метка клиента — ответ получен
             tClientEnd = performance.now();
 
             const rawText = await response.text();
@@ -551,14 +573,13 @@
             // === Расчёт времени загрузки до сервиса ===
             let uploadSecondsText = '—';
             if (typeof tClientEnd === 'number' && typeof data.processing_time === 'number') {
-                const clientTotalMs = tClientEnd - tClientStart;  // весь цикл запроса на клиенте
-                const processingMs  = data.processing_time * 1000; // серверная обработка
-                const uploadMs      = Math.max(0, clientTotalMs - processingMs); // примерно upload + сетевые задержки
+                const clientTotalMs = tClientEnd - tClientStart;
+                const processingMs  = data.processing_time * 1000;
+                const uploadMs      = Math.max(0, clientTotalMs - processingMs);
 
                 uploadSecondsText = (uploadMs / 1000).toFixed(3) + ' сек';
             }
 
-            // === Метрики ===
             const serverDurationSec = typeof data.duration_sec === 'number'
                 ? data.duration_sec
                 : null;
