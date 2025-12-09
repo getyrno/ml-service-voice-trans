@@ -1,12 +1,12 @@
 import asyncio
 from fastapi import Request, APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Form
 from app.api.v1.schemas import TranscriptionResponse
-from app.services import audio_service, transcription_service
+from app.services import audio_service
+from app.services.stt_factory import get_stt_provider, get_stt_provider_ab
 from app.services.telemetry import send_transcribe_event
 import uuid
 import time
 import os
-import signal
 
 router = APIRouter()
 
@@ -27,12 +27,6 @@ async def ensure_connected(request: Request):
                 proc.kill()
             except Exception:
                 pass
-
-        # === Whisper: задача в executor ===
-        if getattr(transcription_service, "current_task", None):
-            task = transcription_service.current_task
-            if task and not task.done():
-                task.cancel()
 
         raise HTTPException(499, "Клиент отключился")
 
@@ -57,8 +51,9 @@ async def transcribe_video(
     request: Request,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(..., description="Видеофайл для транскрибации."),
-    channel: str = Form("api"),             # <--- новое поле
-    user_id: str | None = Form(None),       # <--- новое поле
+    channel: str = Form("api"),
+    user_id: str | None = Form(None),
+    stt_provider: str | None = Form(None, description="STT провайдер: 'whisper', 'gigaam' или None (авто)"),
 ):
     start = time.time()
 
@@ -94,9 +89,16 @@ async def transcribe_video(
 
         await ensure_connected(request)
 
-        # ---------- 2) Whisper ----------
+        # ---------- 2) STT (Whisper или GigaAM) ----------
         t_transcribe_start = time.time()
-        transcription_result = await transcription_service.transcribe_audio_async(audio_path)
+        
+        # Если провайдер указан в запросе - используем его, иначе A/B режим
+        if stt_provider:
+            provider = get_stt_provider(stt_provider)
+        else:
+            provider = get_stt_provider_ab()
+        
+        transcription_result = await provider.transcribe(audio_path)
         transcribe_ms = int((time.time() - t_transcribe_start) * 1000)
 
         await ensure_connected(request)
@@ -111,9 +113,10 @@ async def transcribe_video(
             "filesize_bytes": file_size,
             "duration_sec": duration_sec,
             "content_type": file.content_type,
-            "model_name": transcription_service.get_model_name(),
-            "model_device": transcription_service.get_model_device(),
-            "language_detected": transcription_result["language"],
+            "model_name": provider.get_model_name(),
+            "model_device": provider.get_device(),
+            "stt_provider": provider.get_name(),
+            "language_detected": transcription_result.language,
             "latency_ms": total_ms,
             "transcribe_ms": transcribe_ms,
             "ffmpeg_ms": ffmpeg_ms,
@@ -130,8 +133,8 @@ async def transcribe_video(
         # ---------- Response ----------
         return TranscriptionResponse(
             video_id=video_id,
-            language=transcription_result["language"],
-            transcript=transcription_result["transcript"],
+            language=transcription_result.language,
+            transcript=transcription_result.transcript,
             processing_time=time.time() - start,
             file_size=file_size,
             duration_sec=duration_sec,
@@ -153,8 +156,9 @@ async def transcribe_video(
             "filesize_bytes": file_size,
             "duration_sec": None,
             "content_type": getattr(file, "content_type", None),
-            "model_name": transcription_service.get_model_name(),
-            "model_device": transcription_service.get_model_device(),
+            "model_name": provider.get_model_name() if 'provider' in dir() else "unknown",
+            "model_device": provider.get_device() if 'provider' in dir() else "unknown",
+            "stt_provider": provider.get_name() if 'provider' in dir() else "unknown",
             "language_detected": None,
             "latency_ms": total_ms,
             "transcribe_ms": None,

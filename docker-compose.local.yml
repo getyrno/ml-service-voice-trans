@@ -1,0 +1,41 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.m1
+    container_name: ml-service-voice-trans-local
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+
+    environment:
+      TZ: Europe/Moscow
+      ENV_NAME: local-dev
+      CLIENT_NAME: local-pc
+
+      # ===== STT Провайдер =====
+      # Выбор: "whisper" или "gigaam"
+      STT_PROVIDER: whisper
+
+      # ===== Whisper настройки =====
+      WHISPER_MODEL: small
+
+      # ===== GigaAM настройки =====
+      GIGAAM_MODEL_VARIANT: e2e_rnnt
+      # HuggingFace токен (нужен для GigaAM/pyannote)
+      HF_TOKEN: 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
+
+      # ===== A/B тестирование =====
+      # 0 = только Whisper, 100 = только GigaAM
+      STT_AB_GIGAAM_PERCENT: "0"
+
+    # Кеш моделей
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+      - ~/.cache/whisper:/root/.cache/whisper
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -145,10 +145,64 @@ pytest -q
 
 ---
 
+## STT Провайдеры
+
+Сервис поддерживает два провайдера распознавания речи:
+
+### Whisper (по умолчанию)
+- FasterWhisper с GPU-ускорением (CUDA)
+- Модели: `tiny`, `base`, `small`, `medium`, `large`
+- Хорошо работает для многих языков
+
+### GigaAM-v3 (Sber)
+- Локальная модель от Sber на [HuggingFace](https://huggingface.co/ai-sage/GigaAM-v3)
+- 220-240M параметров, Conformer-архитектура
+- State-of-the-art для русского языка
+- Варианты: `e2e_rnnt` (рекомендуется), `e2e_ctc`, `rnnt`, `ctc`
+
+### Переменные окружения
+
+```bash
+# Выбор провайдера: "whisper" или "gigaam"
+STT_PROVIDER=whisper
+
+# Настройки Whisper
+WHISPER_MODEL=small
+
+# Настройки GigaAM
+GIGAAM_MODEL_VARIANT=e2e_rnnt
+
+# A/B тестирование: процент запросов на GigaAM (0-100)
+STT_AB_GIGAAM_PERCENT=0
+```
+
+### A/B тестирование
+
+Для сравнения провайдеров можно использовать A/B режим:
+
+```bash
+# 50% запросов на Whisper, 50% на GigaAM
+STT_AB_GIGAAM_PERCENT=50 uvicorn app.main:app --reload
+```
+
+### Бенчмарк
+
+Для сравнения скорости и качества:
+
+```bash
+# Положите тестовые файлы в benchmark/test_samples/
+python benchmark/run_benchmark.py --samples benchmark/test_samples/ --output benchmark/results/
+
+# Результаты будут в benchmark/results/comparison.md
+```
+
+---
+
 ## Производительность и модель
-- Whisper модели существенно отличаются по **качеству/скорости/памяти**. Для сервера с 4–8 ГБ RAM разумно начать с `base/small`.
-- Для GPU‑ускорения можно убрать `fp16=False` (оставить по умолчанию) и запускать на CUDA‑окружении.
+- Whisper модели существенно отличаются по **качеству/скорости/памяти**. Для сервера с 4-8 ГБ RAM разумно начать с `base/small`.
+- Для GPU-ускорения можно убрать `fp16=False` (оставить по умолчанию) и запускать на CUDA-окружении.
 - На CPU большие модели (`medium/large`) могут быть очень медленными.
+- GigaAM-v3 рекомендуется для русского языка при наличии GPU.
 
 ---
 
