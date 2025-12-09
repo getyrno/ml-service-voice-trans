@@ -6,10 +6,8 @@ from typing import Dict, Any
 
 import requests
 
-ORCH_URL = os.getenv(
-    "ORCHESTRATOR_URL",
-    "http://147.45.235.55:9100/events/transcribe",  # дефолт — твой VDS
-)
+# URL для отправки телеметрии (если не задан - телеметрия отключена)
+ORCH_URL = os.getenv("ORCHESTRATOR_URL", "")
 ENV_NAME = os.getenv("ENV_NAME", "gpu-prod")
 CLIENT_NAME = os.getenv("CLIENT_NAME", "home-pc")
 

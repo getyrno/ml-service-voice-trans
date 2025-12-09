@@ -49,4 +49,4 @@ def test_upload_non_video_file_fails():
     os.remove(dummy_file_path)
 
     assert response.status_code == 400
-    assert "Invalid file type" in response.json()["detail"]
+    assert "Неверный тип файла" in response.json()["detail"]

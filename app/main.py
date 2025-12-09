@@ -7,12 +7,18 @@ import os
 app = FastAPI(
     title="API Распознавания Речи Sparq", 
     version="1.0",
-    description="API для транскрибации (расшифровки) речи из видеофайлов."
+    description="API для транскрибации речи из видеофайлов."
 )
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(transcription.router, prefix="/api/v1", tags=["Транскрибация"])
+
+
+@app.get("/healthz", tags=["Служебное"])
+async def healthcheck():
+    """Эндпоинт для проверки состояния сервиса, пока для докера, в целом можно и в оркестратор влить проверку."""
+    return {"status": "ok"}
 
 @app.get("/", tags=["Web UI"])
 def read_root_ui():
