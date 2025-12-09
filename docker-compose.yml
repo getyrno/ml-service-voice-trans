@@ -1,4 +1,10 @@
 services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
   api:
     build: .
     container_name: ml-service-voice-trans
@@ -7,6 +13,40 @@ services:
       - "8000:8000"
     environment:
       TZ: Europe/Moscow
-      ORCHESTRATOR_URL: http://147.45.235.55:9100/events/transcribe
       ENV_NAME: gpu-prod
       CLIENT_NAME: home-pc
+
+      # ===== Async Jobs Config =====
+      REDIS_URL: redis://redis:6379/0
+      # URL для отправки телеметрии (как было)
+      ORCHESTRATOR_URL: http://147.45.235.55:9100/events/transcribe
+      # URL оркестратора для обновлений статусов задач (добавлен /job по аналогии с local)
+      ORCHESTRATOR_JOB_URL: http://147.45.235.55:9100/events/transcribe/job
+      UPLOAD_DIR: /uploads
+
+      # ===== STT Провайдер =====
+      # Выбор: "whisper" или "gigaam"
+      STT_PROVIDER: whisper
+
+      # ===== Whisper настройки =====
+      WHISPER_MODEL: small
+
+      # ===== GigaAM настройки =====
+      GIGAAM_MODEL_VARIANT: e2e_rnnt
+      # HuggingFace токен (нужен для GigaAM/pyannote) - берется из .env файла
+      HF_TOKEN: ${HF_TOKEN}
+
+      # ===== A/B тестирование =====
+      # 0 = только Whisper, 100 = только GigaAM
+      STT_AB_GIGAAM_PERCENT: "0"
+
+    volumes:
+      - ./uploads:/uploads
+      - ~/.cache/huggingface:/root/.cache/huggingface
+      - ~/.cache/whisper:/root/.cache/whisper
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
