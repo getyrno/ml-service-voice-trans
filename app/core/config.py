@@ -16,3 +16,8 @@ GIGAAM_MODEL_VARIANT = os.getenv("GIGAAM_MODEL_VARIANT", "e2e_rnnt")
 # Процент запросов на GigaAM (0-100)
 # 0 = только Whisper, 100 = только GigaAM
 STT_AB_GIGAAM_PERCENT = int(os.getenv("STT_AB_GIGAAM_PERCENT", "0"))
+
+# ===== Async Jobs Config =====
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+ORCHESTRATOR_JOB_URL = os.getenv("ORCHESTRATOR_JOB_URL", "")
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/tmp/uploads")

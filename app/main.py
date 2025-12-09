@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from app.api.v1.endpoints import transcription
+from app.api.v1.endpoints import transcription, jobs
+from app.services.job_worker import worker_loop
 import os
 
 app = FastAPI(
@@ -13,6 +14,12 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(transcription.router, prefix="/api/v1", tags=["Транскрибация"])
+app.include_router(jobs.router, prefix="/api/v1", tags=["Jobs"])
+
+@app.on_event("startup")
+async def startup_event():
+    import asyncio
+    asyncio.create_task(worker_loop())
 
 
 @app.get("/healthz", tags=["Служебное"])

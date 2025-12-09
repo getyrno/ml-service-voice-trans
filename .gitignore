@@ -40,3 +40,4 @@ tests/test_data/*.wav
 # Benchmark результаты
 benchmark/results/
 benchmark/test_samples/
+.idea/workspace.xml
