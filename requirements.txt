@@ -13,7 +13,6 @@ pytest==8.3.2
 
 numpy<2
 
-# GigaAM-v3 зависимости (версии по рекомендации HuggingFace)
 transformers==4.47.0
 torch==2.5.1
 torchaudio==2.5.1

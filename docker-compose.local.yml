@@ -22,8 +22,8 @@ services:
 
       # ===== GigaAM настройки =====
       GIGAAM_MODEL_VARIANT: e2e_rnnt
-      # HuggingFace токен (нужен для GigaAM/pyannote)
-      HF_TOKEN: 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
+      # HuggingFace токен (нужен для GigaAM/pyannote) - берется из .env файла
+      HF_TOKEN: ${HF_TOKEN}
 
       # ===== A/B тестирование =====
       # 0 = только Whisper, 100 = только GigaAM

@@ -1,0 +1,42 @@
+# Секреты
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Временные файлы
+*.tmp
+*.temp
+.cache/
+
+# Модели (скачиваются при запуске)
+*.pt
+*.bin
+*.onnx
+
+# Логи
+*.log
+logs/
+
+# Тестовые данные
+tests/test_data/*.mp4
+tests/test_data/*.wav
+!tests/test_data/.gitkeep
+
+# Benchmark результаты
+benchmark/results/
+benchmark/test_samples/
