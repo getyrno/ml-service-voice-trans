@@ -1,4 +1,9 @@
 services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
   api:
     build:
       context: .
@@ -12,6 +17,12 @@ services:
       TZ: Europe/Moscow
       ENV_NAME: local-dev
       CLIENT_NAME: local-pc
+
+      # ===== Async Jobs Config =====
+      REDIS_URL: redis://redis:6379/0
+      # Если оркестратор запущен локально на порту 9000:
+      ORCHESTRATOR_JOB_URL: http://host.docker.internal:9000/events/transcribe/job
+      UPLOAD_DIR: /uploads
 
       # ===== STT Провайдер =====
       # Выбор: "whisper" или "gigaam"
@@ -29,8 +40,9 @@ services:
       # 0 = только Whisper, 100 = только GigaAM
       STT_AB_GIGAAM_PERCENT: "0"
 
-    # Кеш моделей
+    # Кеш моделей и загрузки
     volumes:
+      - ./uploads:/uploads
       - ~/.cache/huggingface:/root/.cache/huggingface
       - ~/.cache/whisper:/root/.cache/whisper
 

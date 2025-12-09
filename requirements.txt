@@ -20,3 +20,4 @@ sentencepiece
 hydra-core
 omegaconf
 pyannote-audio
+redis

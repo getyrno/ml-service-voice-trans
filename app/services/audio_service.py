@@ -12,14 +12,15 @@ from concurrent.futures import ThreadPoolExecutor
 FFMPEG_POOL = ThreadPoolExecutor(max_workers=4)  # можешь подстроить под CPU
 
 
-def _blocking_extract_audio(temp_video_path: str) -> tuple[str, Optional[float], int]:
+def _blocking_extract_audio(temp_video_path: str, delete_original: bool = True) -> tuple[str, Optional[float], int]:
     """
     Блокирующая часть: ffmpeg.probe + ffmpeg.run.
     Выполняется в отдельном потоке, чтобы не блокировать event loop.
     """
     video_size = os.path.getsize(temp_video_path)
     if video_size == 0:
-        os.remove(temp_video_path)
+        if delete_original:
+            os.remove(temp_video_path)
         raise RuntimeError("Видео-файл пуст после копирования.")
 
     # пробуем узнать длительность видео
@@ -54,10 +55,22 @@ def _blocking_extract_audio(temp_video_path: str) -> tuple[str, Optional[float],
             raise RuntimeError("FFmpeg создал пустой WAV-файл.")
     finally:
         ffmpeg_ms = int((time.time() - t0) * 1000)
-        if os.path.exists(temp_video_path):
+        if delete_original and os.path.exists(temp_video_path):
             os.remove(temp_video_path)
 
     return audio_output_path, duration_sec, ffmpeg_ms
+
+async def extract_audio_from_path(video_path: str, delete_original: bool = False) -> tuple[str, Optional[float], int]:
+    """
+    Асинхронная обертка для извлечения аудио из локального файла.
+    """
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(
+        FFMPEG_POOL,
+        _blocking_extract_audio,
+        video_path,
+        delete_original
+    )
 
 
 async def extract_audio(video_file: UploadFile) -> tuple[str, Optional[float], int]:
