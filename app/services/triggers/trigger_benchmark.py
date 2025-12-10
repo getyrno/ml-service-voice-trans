@@ -47,11 +47,7 @@ async def run_benchmark_and_push() -> Dict[str, Any]:
         "data": benchmark_data,
     }
 
-    url = getattr(
-        settings,
-        "orchestrator_model_stat_url",
-        "http://147.45.235.55:9100/trigger/model_stat",
-    )
+    url = "http://147.45.235.55:9100/trigger/model_stat"
 
     # 3) Отправляем запрос в оркестратор (через to_thread, чтобы не блокировать event loop)
     def _post() -> Dict[str, Any]:
