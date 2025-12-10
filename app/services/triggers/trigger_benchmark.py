@@ -9,8 +9,9 @@ from typing import Any, Dict
 
 import requests
 
+from app.benchmark.run_benchmark import run_benchmark_core
+
 # from app.core.config import settings
-from benchmark.run_benchmark import run_benchmark_core
 
 
 def now_iso() -> str:
