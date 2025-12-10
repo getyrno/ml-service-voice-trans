@@ -1,8 +1,10 @@
-from fastapi import FastAPI
+import asyncio
+from fastapi import BackgroundTasks, FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from app.api.v1.endpoints import transcription, jobs
 from app.services.job_worker import worker_loop
+from app.services.triggers.trigger_benchmark import run_benchmark_and_push
 import os
 
 app = FastAPI(
@@ -33,3 +35,10 @@ def read_root_ui():
     Отдает главную страницу веб-интерфейса для загрузки видео.
     """
     return FileResponse(os.path.join("app", "static", "index.html"))
+
+@app.post("/v1/api/trigger/model_test", tags=["Benchmarks"])
+async def trigger_model_test():
+    # Просто запускаем фоновую таску, а клиенту сразу отвечаем
+    import asyncio
+    asyncio.create_task(run_benchmark_and_push())
+    return {"status": "accepted"}
