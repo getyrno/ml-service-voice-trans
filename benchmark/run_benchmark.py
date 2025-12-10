@@ -314,7 +314,6 @@ async def main():
             gigaam_results,
             str(output_dir / "comparison.md")
         )
-    
     print("\n✅ Бенчмарк завершен!")
 
 
