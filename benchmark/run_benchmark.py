@@ -320,3 +320,91 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+async def run_benchmark_core(
+    samples_dir: Path,
+    output_dir: Path,
+    whisper_only: bool = False,
+    gigaam_only: bool = False,
+) -> dict:
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Поиск аудио/видео файлов
+    extensions = {".mp4", ".mp3", ".wav", ".m4a", ".webm", ".ogg", ".flac"}
+    files = [f for f in samples_dir.iterdir() if f.suffix.lower() in extensions]
+
+    if not files:
+        raise RuntimeError(
+            f"Не найдено аудио/видео файлов в {samples_dir}. "
+            f"Поддерживаемые форматы: {', '.join(extensions)}"
+        )
+
+    print(f"📁 Найдено файлов: {len(files)}")
+
+    whisper_results: List[BenchmarkResult] = []
+    gigaam_results: List[BenchmarkResult] = []
+
+    for file_path in files:
+        print(f"\n🎬 Обработка: {file_path.name}")
+
+        # Извлекаем аудио
+        audio_path, duration = await extract_audio_from_file(str(file_path))
+        print(f"   Длительность: {duration:.1f}s" if duration else "   Длительность: неизвестно")
+
+        try:
+            # Whisper
+            if not gigaam_only:
+                print("   🔊 Whisper...")
+                result = await benchmark_provider(
+                    WhisperProvider, audio_path, file_path.name, duration
+                )
+                whisper_results.append(result)
+                if result.error:
+                    print(f"   ❌ Ошибка: {result.error}")
+                else:
+                    print(f"   ✅ {result.transcribe_time_sec:.2f}s")
+
+            # GigaAM
+            if not whisper_only:
+                print("   🔊 GigaAM...")
+                result = await benchmark_provider(
+                    GigaAMProvider, audio_path, file_path.name, duration
+                )
+                gigaam_results.append(result)
+                if result.error:
+                    print(f"   ❌ Ошибка: {result.error}")
+                else:
+                    print(f"   ✅ {result.transcribe_time_sec:.2f}s")
+        finally:
+            # Удаляем временный WAV
+            if os.path.exists(audio_path):
+                os.remove(audio_path)
+
+    # Сохраняем результаты как раньше
+    if whisper_results:
+        with open(output_dir / "whisper_results.json", "w", encoding="utf-8") as f:
+            json.dump([asdict(r) for r in whisper_results], f, ensure_ascii=False, indent=2)
+
+    if gigaam_results:
+        with open(output_dir / "gigaam_results.json", "w", encoding="utf-8") as f:
+            json.dump([asdict(r) for r in gigaam_results], f, ensure_ascii=False, indent=2)
+
+    if whisper_results and gigaam_results:
+        generate_markdown_report(
+            whisper_results,
+            gigaam_results,
+            str(output_dir / "comparison.md"),
+        )
+
+    # Сводки для оркестратора
+    whisper_summary = calculate_summary(whisper_results) if whisper_results else None
+    gigaam_summary = calculate_summary(gigaam_results) if gigaam_results else None
+
+    print("\n✅ Бенчмарк завершен!")
+
+    return {
+        "whisper_results": [asdict(r) for r in whisper_results],
+        "gigaam_results": [asdict(r) for r in gigaam_results],
+        "whisper_summary": asdict(whisper_summary) if whisper_summary else None,
+        "gigaam_summary": asdict(gigaam_summary) if gigaam_summary else None,
+    }
