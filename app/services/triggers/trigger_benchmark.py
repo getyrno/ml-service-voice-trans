@@ -9,7 +9,7 @@ from typing import Any, Dict
 
 import requests
 
-from app.core.config import settings
+# from app.core.config import settings
 from benchmark.run_benchmark import run_benchmark_core
 
 
@@ -40,7 +40,7 @@ async def run_benchmark_and_push() -> Dict[str, Any]:
     # 2) Готовим payload для оркестратора
     payload: Dict[str, Any] = {
         "event_type": "model_stat",
-        "env": settings.env_name,
+        "env": "ml_service_v1",
         "timestamp": now_iso(),
         # можно добавить любую доп. инфу: имя сервиса, ветку, модель и т.п.
         "service": "ml-service-voice-trans",
