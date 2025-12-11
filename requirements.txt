@@ -18,9 +18,4 @@ sentencepiece
 hydra-core
 omegaconf
 
-# Клиент для Redis
 redis
-
-# Явно фиксируем CPU-версию onnxruntime,
-# чтобы VAD от faster-whisper работал без cuDNN 9
-onnxruntime==1.19.2

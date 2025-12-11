@@ -2,7 +2,11 @@ FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    # Жёстко запрещаем onnxruntime использовать CUDA-провайдер
+    ORT_DISABLE_CUSTOM_OPS=1 \
+    ORT_DISABLE_MEM_PATTERN=1 \
+    ORT_DISABLE_CUDA=1
 
 # Базовые пакеты + ffmpeg и dev-библиотеки
 RUN apt-get update && apt-get install -y \
@@ -36,10 +40,16 @@ RUN python3 -m pip install --no-cache-dir \
     torchaudio==2.5.1 \
     --extra-index-url https://download.pytorch.org/whl/cu121
 
-# 2. Ставим остальные зависимости из requirements.txt
-# 3. Насильно переключаемся на CPU-версию onnxruntime
-RUN python3 -m pip install --no-cache-dir -r requirements.txt && \
-    python3 -m pip uninstall -y onnxruntime-gpu onnxruntime-directml onnxruntime-training || true && \
+# 2. Ставим остальные зависимости
+RUN python3 -m pip install --no-cache-dir -r requirements.txt
+
+# 3. Полностью выпиливаем любые варианты onnxruntime и ставим только CPU-версию
+RUN python3 -m pip uninstall -y \
+        onnxruntime-gpu \
+        onnxruntime-directml \
+        onnxruntime-training \
+        onnxruntime \
+        || true && \
     python3 -m pip install --no-cache-dir "onnxruntime==1.19.2"
 
 # Копируем исходники приложения
