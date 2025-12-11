@@ -14,10 +14,9 @@ pytest==8.3.2
 numpy<2
 
 transformers==4.47.0
-torch==2.5.1
-torchaudio==2.5.1
 sentencepiece
 hydra-core
 omegaconf
 pyannote-audio
 redis
+onnxruntime-gpu
