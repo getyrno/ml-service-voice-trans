@@ -17,5 +17,10 @@ transformers==4.47.0
 sentencepiece
 hydra-core
 omegaconf
-# pyannote-audio
+
+# Клиент для Redis
 redis
+
+# Явно фиксируем CPU-версию onnxruntime,
+# чтобы VAD от faster-whisper работал без cuDNN 9
+onnxruntime==1.19.2
