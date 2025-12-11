@@ -19,4 +19,3 @@ hydra-core
 omegaconf
 pyannote-audio
 redis
-onnxruntime-gpu
