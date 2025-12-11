@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-RUN apt-get update && apt-get install -y \
+    RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-dev \
@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     libavdevice-dev \
     libavutil-dev \
     libswscale-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m pip install --upgrade pip setuptools wheel
