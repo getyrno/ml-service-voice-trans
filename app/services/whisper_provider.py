@@ -39,10 +39,10 @@ class WhisperProvider(STTProvider):
             audio_path,
             language="ru",
             task="transcribe",
-            vad_filter=True,
-            vad_parameters=dict(
-                min_silence_duration_ms=400,
-            ),
+            # vad_filter=True,
+            # vad_parameters=dict(
+            #     min_silence_duration_ms=400,
+            # ),
         )
 
         # segments - это генератор, собираем текст
