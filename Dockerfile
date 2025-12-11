@@ -1,12 +1,8 @@
-FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04
+FROM nvidia/cuda:12.3.2-cudnn9-devel-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    # Жёстко запрещаем onnxruntime использовать CUDA-провайдер
-    ORT_DISABLE_CUSTOM_OPS=1 \
-    ORT_DISABLE_MEM_PATTERN=1 \
-    ORT_DISABLE_CUDA=1
+    PIP_NO_CACHE_DIR=1
 
 # Базовые пакеты + ffmpeg и dev-библиотеки
 RUN apt-get update && apt-get install -y \
@@ -30,29 +26,21 @@ RUN python3 -m pip install --upgrade pip setuptools wheel
 
 WORKDIR /app
 
-# Сначала копируем требования
+# Копируем requirements заранее, чтобы кэш слоёв нормально работал
 COPY requirements.txt .
 
-# 1. Ставим GPU-версию PyTorch под CUDA 12.1
+# 1. Ставим PyTorch под CUDA 12.x (cu124) — это как раз рекомендованная связка
+# для ctranslate2 >= 4.5.0 и CUDA 12.3+ 
 RUN python3 -m pip install --no-cache-dir \
-    torch==2.5.1+cu121 \
-    torchvision==0.20.1+cu121 \
+    torch==2.5.1+cu124 \
+    torchvision==0.20.1+cu124 \
     torchaudio==2.5.1 \
-    --extra-index-url https://download.pytorch.org/whl/cu121
+    --index-url https://download.pytorch.org/whl/cu124
 
-# 2. Ставим остальные зависимости
+# 2. Ставим все остальные зависимости (faster-whisper, ctranslate2, transformers и т.д.)
 RUN python3 -m pip install --no-cache-dir -r requirements.txt
 
-# 3. Полностью выпиливаем любые варианты onnxruntime и ставим только CPU-версию
-RUN python3 -m pip uninstall -y \
-        onnxruntime-gpu \
-        onnxruntime-directml \
-        onnxruntime-training \
-        onnxruntime \
-        || true && \
-    python3 -m pip install --no-cache-dir "onnxruntime==1.19.2"
-
-# Копируем исходники приложения
+# Копируем код приложения
 COPY ./app /app/app
 
 EXPOSE 8000

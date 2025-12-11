@@ -8,6 +8,8 @@ import uuid
 import time
 import os
 
+from app.services.whisper_provider import STTInitError
+
 router = APIRouter()
 
 MAX_FILE_SIZE_BYTES = 1000 * 1024 * 1024  # 1000 MB
@@ -142,6 +144,37 @@ async def transcribe_video(
 
     except HTTPException:
         raise
+
+    except STTInitError as e:
+        total_ms = int((time.time() - start) * 1000)
+
+        error_payload = {
+            "request_id": request_id,
+            "video_id": video_id,
+            "filename": getattr(file, "filename", None),
+            "filesize_bytes": file_size,
+            "duration_sec": None,
+            "content_type": getattr(file, "content_type", None),
+            "model_name": provider.get_model_name() if 'provider' in locals() else "unknown",
+            "model_device": provider.get_device() if 'provider' in locals() else "unknown",
+            "stt_provider": provider.get_name() if 'provider' in locals() else "unknown",
+            "language_detected": None,
+            "latency_ms": total_ms,
+            "transcribe_ms": None,
+            "ffmpeg_ms": None,
+            "success": False,
+            "error_code": "stt_init_error",
+            "error_message": str(e),
+            "client_ip": client_ip,
+            "channel": channel,
+            "user_id": user_id,
+        }
+
+        background_tasks.add_task(send_transcribe_event, error_payload)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка инициализации STT-провайдера: {e}",
+        )
 
     except asyncio.CancelledError:
         raise HTTPException(499, "Транскрибация отменена (клиент отключился).")
