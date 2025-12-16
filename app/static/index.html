@@ -388,13 +388,16 @@
     } catch {}
   })();
 
+  if (copyJobIdBtn) {
   copyJobIdBtn.addEventListener('click', async () => {
     try {
-      await navigator.clipboard.writeText(activeJobId || '');
-      copyJobIdBtn.textContent = 'Скопировано';
-      setTimeout(() => (copyJobIdBtn.textContent = 'Скопировать'), 1200);
-    } catch {}
-  });
+        await navigator.clipboard.writeText(activeJobId || '');
+        copyJobIdBtn.textContent = 'Скопировано';
+        setTimeout(() => (copyJobIdBtn.textContent = 'Скопировать'), 1200);
+      } catch {}
+    });
+  } 
+
 
   function formatBytes(bytes) {
     if (!bytes && bytes !== 0) return '—';
