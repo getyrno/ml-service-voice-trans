@@ -1,638 +1,668 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voice Recognition</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Recognition</title>
 
-    <style>
-        /* === Глобальный стиль в духе Apple === */
-        :root {
-            color-scheme: light;
-        }
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
 
-        * {
-            box-sizing: border-box;
-        }
+    body {
+      margin: 0;
+      padding: 24px 16px;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, #e8ecff 0, transparent 55%),
+        radial-gradient(circle at bottom right, #ffe9f0 0, transparent 55%),
+        #f5f5f7;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+                   "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-        body {
-            margin: 0;
-            padding: 24px 16px;
-            min-height: 100vh;
-            background:
-                radial-gradient(circle at top left, #e8ecff 0, transparent 55%),
-                radial-gradient(circle at bottom right, #ffe9f0 0, transparent 55%),
-                #f5f5f7;
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
-                         "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+    .container {
+      width: 100%;
+      max-width: 720px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(26px);
+      -webkit-backdrop-filter: blur(26px);
+      padding: 28px 22px 26px;
+      border-radius: 24px;
+      box-shadow:
+        0 24px 45px rgba(0, 0, 0, 0.14),
+        0 0 0 0.5px rgba(0, 0, 0, 0.04);
+      animation: fadeIn 0.25s ease-out;
+    }
 
-        .container {
-            width: 100%;
-            max-width: 720px;
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(26px);
-            -webkit-backdrop-filter: blur(26px);
-            padding: 28px 22px 26px;
-            border-radius: 24px;
-            box-shadow:
-                0 24px 45px rgba(0, 0, 0, 0.14),
-                0 0 0 0.5px rgba(0, 0, 0, 0.04);
-            animation: fadeIn 0.25s ease-out;
-        }
+    @media (min-width: 768px) {
+      .container { padding: 32px 32px 30px; border-radius: 26px; }
+    }
 
-        @media (min-width: 768px) {
-            .container {
-                padding: 32px 32px 30px;
-                border-radius: 26px;
-            }
-        }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px) scale(0.99); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px) scale(0.99); }
-            to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
+    header { text-align: left; margin-bottom: 22px; }
 
-        header {
-            text-align: left;
-            margin-bottom: 22px;
-        }
+    header h1 {
+      margin: 0 0 4px;
+      font-weight: 650;
+      color: #1d1d1f;
+      letter-spacing: -0.4px;
+      font-size: 1.7rem;
+    }
 
-        header h1 {
-            margin: 0 0 4px;
-            font-weight: 650;
-            color: #1d1d1f;
-            letter-spacing: -0.4px;
-            font-size: 1.7rem;
-        }
+    header p { margin: 0; color: #6e6e73; font-size: 0.95rem; }
 
-        header p {
-            margin: 0;
-            color: #6e6e73;
-            font-size: 0.95rem;
-        }
+    @media (min-width: 768px) {
+      header h1 { font-size: 1.9rem; }
+      header p  { font-size: 1rem; }
+    }
 
-        @media (min-width: 768px) {
-            header h1 {
-                font-size: 1.9rem;
-            }
-            header p {
-                font-size: 1rem;
-            }
-        }
+    .card {
+      background: #fbfbfd;
+      border-radius: 18px;
+      border: 1px solid #e5e5ea;
+      padding: 16px 16px 18px;
+    }
 
-        /* === Карточка загрузки === */
-        .card {
-            background: #fbfbfd;
-            border-radius: 18px;
-            border: 1px solid #e5e5ea;
-            padding: 16px 16px 18px;
-        }
+    @media (min-width: 768px) {
+      .card { padding: 18px 20px 20px; display: flex; gap: 16px; align-items: center; }
+    }
 
-        @media (min-width: 768px) {
-            .card {
-                padding: 18px 20px 20px;
-                display: flex;
-                gap: 16px;
-                align-items: center;
-            }
-        }
+    .file-area { flex: 1; }
 
-        .file-area {
-            flex: 1;
-        }
+    .file-label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #3a3a3c;
+    }
 
-        .file-label {
-            display: block;
-            margin-bottom: 6px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            color: #3a3a3c;
-        }
+    .file-hint { margin-top: 6px; font-size: 0.8rem; color: #8e8e93; }
+    .file-hint strong { font-weight: 600; color: #1d1d1f; }
 
-        .file-hint {
-            margin-top: 6px;
-            font-size: 0.8rem;
-            color: #8e8e93;
-        }
+    input[type="file"] {
+      width: 100%;
+      padding: 10px 11px;
+      background: #ffffff;
+      border: 1px solid #d2d2d7;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
 
-        .file-hint strong {
-            font-weight: 600;
-            color: #1d1d1f;
-        }
+    input[type="file"]:hover { background: #f4f4f6; border-color: #b7b7c4; }
 
-        input[type="file"] {
-            width: 100%;
-            padding: 10px 11px;
-            background: #ffffff;
-            border: 1px solid #d2d2d7;
-            border-radius: 12px;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: 0.2s;
-        }
+    .file-info {
+      margin-top: 10px;
+      padding: 10px 11px;
+      border-radius: 11px;
+      background: #f5f5f7;
+      border: 1px solid transparent;
+      font-size: 0.85rem;
+    }
 
-        input[type="file"]:hover {
-            background: #f4f4f6;
-            border-color: #b7b7c4;
-        }
+    .file-info.empty { opacity: 0.7; }
+    .file-info.file-error { border-color: #ff3b30; background: #fff5f5; }
 
-        /* === Информация о файле === */
-        .file-info {
-            margin-top: 10px;
-            padding: 10px 11px;
-            border-radius: 11px;
-            background: #f5f5f7;
-            border: 1px solid transparent;
-            font-size: 0.85rem;
-        }
+    .file-name {
+      font-weight: 500;
+      color: #1d1d1f;
+      margin-bottom: 3px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
 
-        .file-info.empty {
-            opacity: 0.7;
-        }
+    .file-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: #8e8e93;
+    }
 
-        .file-info.file-error {
-            border-color: #ff3b30;
-            background: #fff5f5;
-        }
+    .file-meta span { display: inline-flex; align-items: center; gap: 4px; }
 
-        .file-name {
-            font-weight: 500;
-            color: #1d1d1f;
-            margin-bottom: 3px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
+    .dot { width: 4px; height: 4px; border-radius: 50%; background: #c7c7cc; }
 
-        .file-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            color: #8e8e93;
-        }
+    .actions { margin-top: 14px; }
+    @media (min-width: 768px) {
+      .actions { margin-top: 0; width: 210px; text-align: right; }
+    }
 
-        .file-meta span {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
+    button {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 0.95rem;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #ffffff;
+      background: linear-gradient(135deg, #0071e3, #0f8fff);
+      box-shadow: 0 8px 16px rgba(0, 122, 255, 0.35);
+      transition: background 0.2s ease, box-shadow 0.17s ease, transform 0.12s ease;
+    }
 
-        .dot {
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: #c7c7cc;
-        }
+    button:hover:not(:disabled) {
+      background: linear-gradient(135deg, #007aff, #2f9bff);
+      box-shadow: 0 11px 20px rgba(0, 122, 255, 0.45);
+    }
 
-        /* === Кнопка === */
-        .actions {
-            margin-top: 14px;
-        }
+    button:active:not(:disabled) {
+      transform: translateY(1px) scale(0.99);
+      box-shadow: 0 5px 12px rgba(0, 122, 255, 0.25);
+    }
 
-        @media (min-width: 768px) {
-            .actions {
-                margin-top: 0;
-                width: 210px;
-                text-align: right;
-            }
-        }
+    button:disabled { background: #c7c7cc; box-shadow: none; cursor: default; }
 
-        button {
-            width: 100%;
-            padding: 12px 14px;
-            font-size: 0.95rem;
-            border: none;
-            border-radius: 999px;
-            cursor: pointer;
-            font-weight: 600;
-            color: #ffffff;
-            background: linear-gradient(135deg, #0071e3, #0f8fff);
-            box-shadow: 0 8px 16px rgba(0, 122, 255, 0.35);
-            transition:
-                background 0.2s ease,
-                box-shadow 0.17s ease,
-                transform 0.12s ease;
-        }
+    .loader-wrap {
+      margin-top: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 24px;
+      font-size: 0.85rem;
+      color: #8e8e93;
+    }
 
-        button:hover:not(:disabled) {
-            background: linear-gradient(135deg, #007aff, #2f9bff);
-            box-shadow: 0 11px 20px rgba(0, 122, 255, 0.45);
-        }
+    #spinner {
+      display: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 3px solid rgba(0, 0, 0, 0.07);
+      border-top-color: #007aff;
+      animation: spin 0.7s linear infinite;
+    }
 
-        button:active:not(:disabled) {
-            transform: translateY(1px) scale(0.99);
-            box-shadow: 0 5px 12px rgba(0, 122, 255, 0.25);
-        }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        button:disabled {
-            background: #c7c7cc;
-            box-shadow: none;
-            cursor: default;
-        }
+    .section {
+      margin-top: 20px;
+      padding: 18px 16px 17px;
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid #e5e5ea;
+    }
 
-        /* === Индикатор загрузки === */
-        .loader-wrap {
-            margin-top: 18px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-height: 24px;
-            font-size: 0.85rem;
-            color: #8e8e93;
-        }
+    @media (min-width: 768px) { .section { padding: 20px 20px 18px; } }
 
-        #spinner {
-            display: none;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            border: 3px solid rgba(0, 0, 0, 0.07);
-            border-top-color: #007aff;
-            animation: spin 0.7s linear infinite;
-        }
+    .section h3 {
+      margin: 0 0 10px;
+      font-weight: 600;
+      color: #1d1d1f;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.98rem;
+    }
 
-        @keyframes spin { 100% { transform: rotate(360deg); } }
+    .section h3 span { font-size: 1.1rem; }
 
-        /* === Секции результата === */
-        .section {
-            margin-top: 20px;
-            padding: 18px 16px 17px;
-            background: #ffffff;
-            border-radius: 16px;
-            border: 1px solid #e5e5ea;
-        }
+    .metric-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.9rem; }
+    .metric-table td { padding: 7px 0; border-bottom: 1px solid #f1f1f3; }
+    .metric-table tr:last-child td { border-bottom: none; }
 
-        @media (min-width: 768px) {
-            .section {
-                padding: 20px 20px 18px;
-            }
-        }
+    .metric-label { font-weight: 500; width: 40%; color: #3a3a3c; }
 
-        .section h3 {
-            margin: 0 0 10px;
-            font-weight: 600;
-            color: #1d1d1f;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.98rem;
-        }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background: #f5f5f7;
+      padding: 12px 12px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      max-height: 320px;
+      overflow: auto;
+    }
 
-        .section h3 span {
-            font-size: 1.1rem;
-        }
+    @media (min-width: 768px) { pre { max-height: 420px; } }
 
-        .metric-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 8px;
-            font-size: 0.9rem;
-        }
+    @media (max-width: 360px) {
+      header h1 { font-size: 1.4rem; }
+      .container { padding: 20px 16px 18px; }
+    }
 
-        .metric-table td {
-            padding: 7px 0;
-            border-bottom: 1px solid #f1f1f3;
-        }
+    /* ===== JOB UI ===== */
+    .job-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      font-weight:600;
+      font-size:0.9rem;
+      border:1px solid #e5e5ea;
+      background:#fff;
+      color:#1d1d1f;
+    }
+    .job-idle{ background:#f5f5f7; }
+    .job-queued{ background:#fff7e6; border-color:#ffd59a; }
+    .job-processing{ background:#e9f2ff; border-color:#bcd7ff; }
+    .job-done{ background:#eaf7ee; border-color:#bfe6c9; }
+    .job-error{ background:#fff5f5; border-color:#ffb3b3; color:#b42318; }
 
-        .metric-table tr:last-child td {
-            border-bottom: none;
-        }
+    .progress{
+      width:100%;
+      height:10px;
+      border-radius:999px;
+      background:#f1f1f3;
+      overflow:hidden;
+      border:1px solid #e5e5ea;
+    }
+    .progress-bar{
+      height:100%;
+      border-radius:999px;
+      background:linear-gradient(135deg, #0071e3, #0f8fff);
+      transition:width 0.25s ease;
+    }
 
-        .metric-label {
-            font-weight: 500;
-            width: 40%;
-            color: #3a3a3c;
-        }
-
-        pre {
-            margin: 0;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            background: #f5f5f7;
-            padding: 12px 12px;
-            border-radius: 12px;
-            font-size: 0.9rem;
-            line-height: 1.45;
-            max-height: 320px;
-            overflow: auto;
-        }
-
-        @media (min-width: 768px) {
-            pre {
-                max-height: 420px;
-            }
-        }
-
-        /* Мелкие правки для очень маленьких экранов */
-        @media (max-width: 360px) {
-            header h1 {
-                font-size: 1.4rem;
-            }
-            .container {
-                padding: 20px 16px 18px;
-            }
-        }
-    </style>
+    .copy-btn{
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid #d2d2d7;
+      background:#fff;
+      cursor:pointer;
+      font-weight:600;
+      font-size:0.8rem;
+    }
+    .copy-btn:hover{ background:#f4f4f6; }
+  </style>
 </head>
 
 <body>
 <div class="container">
-    <header>
-        <h1>Voice Recognition</h1>
-        <p>Загрузите видеофайл, чтобы получить быстрый и точный текст.</p>
-    </header>
+  <header>
+    <h1>Voice Recognition</h1>
+    <p>Загрузите видеофайл, чтобы получить быстрый и точный текст.</p>
+  </header>
 
-    <div class="card">
-        <div class="file-area">
-            <label class="file-label" for="videoFile">Видео для транскрибации</label>
-            <input type="file" id="videoFile" accept="video/*">
+  <div class="card">
+    <div class="file-area">
+      <label class="file-label" for="videoFile">Видео для транскрибации</label>
+      <input type="file" id="videoFile" accept="video/*" />
 
-            <div id="fileInfo" class="file-info empty">
-                <div id="fileName" class="file-name">Файл не выбран</div>
-                <div class="file-meta">
-                    <span id="fileSize">Размер: —</span>
-                    <span class="dot"></span>
-                    <span id="fileDuration">Длительность: —</span>
-                </div>
-            </div>
-
-            <div class="file-hint">
-                Максимальный размер файла — <strong>1000&nbsp;МБ</strong>.  
-                Для наилучшего качества используйте видео с чётким звуком.
-            </div>
+      <div id="fileInfo" class="file-info empty">
+        <div id="fileName" class="file-name">Файл не выбран</div>
+        <div class="file-meta">
+          <span id="fileSize">Размер: —</span>
+          <span class="dot"></span>
+          <span id="fileDuration">Длительность: —</span>
         </div>
+      </div>
 
-        <div class="actions">
-            <button id="uploadButton">Транскрибировать</button>
-        </div>
+      <div class="file-hint">
+        Максимальный размер файла — <strong>1000&nbsp;МБ</strong>.
+        Для наилучшего качества используйте видео с чётким звуком.
+      </div>
     </div>
 
-    <div class="loader-wrap">
-        <div id="spinner"></div>
-        <div id="loaderText" style="display:none;">Идёт транскрибация…</div>
+    <div class="actions">
+      <button id="uploadButton">Транскрибировать</button>
+    </div>
+  </div>
+
+  <div class="loader-wrap">
+    <div id="spinner"></div>
+    <div id="loaderText" style="display:none;">Идёт транскрибация…</div>
+  </div>
+
+  <div id="jobStatusPanel" class="section" style="display:none;">
+    <h3><span>⏱️</span> Статус задачи</h3>
+
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div id="jobBadge" class="job-badge job-idle">—</div>
+      <div style="color:#6e6e73; font-size:0.9rem;">
+        Job: <span id="jobIdText">—</span>
+        <button id="copyJobIdBtn" class="copy-btn" type="button" style="margin-left:8px; display:none;">Скопировать</button>
+      </div>
     </div>
 
-    <div id="transcript-section" class="section" style="display: none;">
-        <h3><span>📝</span> Расшифровка</h3>
-        <pre id="transcript"></pre>
+    <div class="progress" style="margin-top:12px;">
+      <div id="jobProgressBar" class="progress-bar" style="width:0%"></div>
     </div>
+    <div id="jobStageText" style="margin-top:8px; color:#6e6e73; font-size:0.9rem;">—</div>
+  </div>
 
-    <div id="metrics-section" class="section" style="display: none;">
-        <h3><span>📊</span> Метрики запроса</h3>
-        <table class="metric-table" id="metrics-table"></table>
-    </div>
+  <div id="transcript-section" class="section" style="display:none;">
+    <h3><span>📝</span> Расшифровка</h3>
+    <pre id="transcript"></pre>
+  </div>
+
+  <div id="metrics-section" class="section" style="display:none;">
+    <h3><span>📊</span> Метрики запроса</h3>
+    <table class="metric-table" id="metrics-table"></table>
+  </div>
 </div>
 
 <script>
-    const videoFile     = document.getElementById('videoFile');
-    const uploadButton  = document.getElementById('uploadButton');
-    const spinner       = document.getElementById('spinner');
-    const loaderText    = document.getElementById('loaderText');
+  const MAX_SIZE_BYTES = 1000 * 1024 * 1024; // 1000 MB
 
-    const transcriptSection = document.getElementById('transcript-section');
-    const transcriptDiv     = document.getElementById('transcript');
+  const videoFile     = document.getElementById('videoFile');
+  const uploadButton  = document.getElementById('uploadButton');
+  const spinner       = document.getElementById('spinner');
+  const loaderText    = document.getElementById('loaderText');
 
-    const metricsSection = document.getElementById('metrics-section');
-    const metricsTable   = document.getElementById('metrics-table');
+  const transcriptSection = document.getElementById('transcript-section');
+  const transcriptDiv     = document.getElementById('transcript');
 
-    const fileInfoEl     = document.getElementById('fileInfo');
-    const fileNameEl     = document.getElementById('fileName');
-    const fileSizeEl     = document.getElementById('fileSize');
-    const fileDurationEl = document.getElementById('fileDuration');
+  const metricsSection = document.getElementById('metrics-section');
+  const metricsTable   = document.getElementById('metrics-table');
 
-    const MAX_SIZE_BYTES = 1000 * 1024 * 1024; // 1000 MB
-    let selectedFileDurationSec = null;
+  const fileInfoEl     = document.getElementById('fileInfo');
+  const fileNameEl     = document.getElementById('fileName');
+  const fileSizeEl     = document.getElementById('fileSize');
+  const fileDurationEl = document.getElementById('fileDuration');
 
-    // ======= НОВОЕ: IP пользователя для user_id =======
-    let clientIp = null;
+  const jobStatusPanel   = document.getElementById('jobStatusPanel');
+  const jobBadge         = document.getElementById('jobBadge');
+  const jobIdText        = document.getElementById('jobIdText');
+  const jobStageText     = document.getElementById('jobStageText');
+  const jobProgressBar   = document.getElementById('jobProgressBar');
+  const copyJobIdBtn     = document.getElementById('copyJobIdBtn');
 
-    // Пытаемся получить внешний IP (user_id)
-    (async () => {
-        try {
-            const resp = await fetch('https://api.ipify.org?format=json');
-            if (resp.ok) {
-                const data = await resp.json();
-                clientIp = data.ip; // вот это пойдёт как user_id
-                console.log('Client IP detected:', clientIp);
-            }
-        } catch (e) {
-            console.warn('Не удалось получить IP пользователя:', e);
-        }
-    })();
-    // ================================================
+  let pollTimer = null;
+  let activeJobId = null;
+  let selectedFileDurationSec = null;
 
-    function formatBytes(bytes) {
-        if (!bytes && bytes !== 0) return '—';
-        const mb = bytes / (1024 * 1024);
-        if (mb < 1) {
-            const kb = bytes / 1024;
-            return kb.toFixed(1) + ' КБ';
-        }
-        if (mb > 1024) {
-            const gb = mb / 1024;
-            return gb.toFixed(2) + ' ГБ';
-        }
-        return mb.toFixed(1) + ' МБ';
+  // ======= IP пользователя (user_id) =======
+  let clientIp = null;
+  (async () => {
+    try {
+      const resp = await fetch('https://api.ipify.org?format=json');
+      if (resp.ok) {
+        const data = await resp.json();
+        clientIp = data.ip;
+      }
+    } catch {}
+  })();
+
+  copyJobIdBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(activeJobId || '');
+      copyJobIdBtn.textContent = 'Скопировано';
+      setTimeout(() => (copyJobIdBtn.textContent = 'Скопировать'), 1200);
+    } catch {}
+  });
+
+  function formatBytes(bytes) {
+    if (!bytes && bytes !== 0) return '—';
+    const mb = bytes / (1024 * 1024);
+    if (mb < 1) return (bytes / 1024).toFixed(1) + ' КБ';
+    if (mb > 1024) return (mb / 1024).toFixed(2) + ' ГБ';
+    return mb.toFixed(1) + ' МБ';
+  }
+
+  function formatDuration(seconds) {
+    if (seconds == null || !isFinite(seconds)) return '—';
+    const total = Math.round(seconds);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    return `${m}:${String(s).padStart(2,'0')}`;
+  }
+
+  function resetFileInfo() {
+    fileInfoEl.classList.add('empty');
+    fileInfoEl.classList.remove('file-error');
+    fileNameEl.textContent = 'Файл не выбран';
+    fileSizeEl.textContent = 'Размер: —';
+    fileDurationEl.textContent = 'Длительность: —';
+    selectedFileDurationSec = null;
+    uploadButton.disabled = false;
+  }
+
+  function setJobUIVisible(visible) {
+    jobStatusPanel.style.display = visible ? 'block' : 'none';
+  }
+
+  function setBadge(status) {
+    jobBadge.className = 'job-badge ' + (
+      status === 'queued' ? 'job-queued' :
+      status === 'processing' ? 'job-processing' :
+      status === 'done' ? 'job-done' :
+      status === 'error' ? 'job-error' : 'job-idle'
+    );
+
+    jobBadge.textContent = (
+      status === 'queued' ? 'В очереди' :
+      status === 'processing' ? 'В работе' :
+      status === 'done' ? 'Готово' :
+      status === 'error' ? 'Ошибка' : '—'
+    );
+  }
+
+  function setProgress(pct) {
+    const v = Math.max(0, Math.min(100, Number(pct || 0)));
+    jobProgressBar.style.width = v + '%';
+  }
+
+  function humanStage(step) {
+    const map = {
+      upload: 'Загрузка файла…',
+      queued: 'Ожидаем свободный воркер…',
+      extract_audio: 'Извлекаем аудио (FFmpeg)…',
+      transcribe: 'Распознаём речь (STT)…',
+      finalize: 'Финализируем результат…',
+      done: 'Готово',
+      error: 'Ошибка'
+    };
+    return map[step] || step || '';
+  }
+
+  // Обновление файла + длительность
+  videoFile.addEventListener('change', () => {
+    if (!videoFile.files.length) {
+      resetFileInfo();
+      return;
     }
 
-    function formatDuration(seconds) {
-        if (seconds == null || !isFinite(seconds)) return '—';
-        const total = Math.round(seconds);
-        const h = Math.floor(total / 3600);
-        const m = Math.floor((total % 3600) / 60);
-        const s = total % 60;
+    const file = videoFile.files[0];
 
-        if (h > 0) {
-            return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-        }
-        return `${m}:${String(s).padStart(2, '0')}`;
+    fileInfoEl.classList.remove('empty');
+    fileNameEl.textContent = file.name || 'Без имени';
+    fileSizeEl.textContent = 'Размер: ' + formatBytes(file.size);
+    fileDurationEl.textContent = 'Длительность: —';
+    selectedFileDurationSec = null;
+
+    if (file.size > MAX_SIZE_BYTES) {
+      fileInfoEl.classList.add('file-error');
+      uploadButton.disabled = true;
+      alert('Файл превышает максимальный размер 1000 МБ. Пожалуйста, выберите другой файл.');
+    } else {
+      fileInfoEl.classList.remove('file-error');
+      uploadButton.disabled = false;
     }
 
-    function resetFileInfo() {
-        fileInfoEl.classList.add('empty');
-        fileInfoEl.classList.remove('file-error');
-        fileNameEl.textContent     = 'Файл не выбран';
-        fileSizeEl.textContent     = 'Размер: —';
-        fileDurationEl.textContent = 'Длительность: —';
-        selectedFileDurationSec    = null;
-        uploadButton.disabled      = false;
-    }
+    try {
+      const url = URL.createObjectURL(file);
+      const tempVideo = document.createElement('video');
+      tempVideo.preload = 'metadata';
+      tempVideo.src = url;
+      tempVideo.onloadedmetadata = () => {
+        URL.revokeObjectURL(url);
+        selectedFileDurationSec = tempVideo.duration;
+        fileDurationEl.textContent = 'Длительность: ' + formatDuration(tempVideo.duration);
+      };
+      tempVideo.onerror = () => URL.revokeObjectURL(url);
+    } catch {}
+  });
 
-    // === Обновление информации о файле и получение длительности ===
-    videoFile.addEventListener('change', () => {
-        if (!videoFile.files.length) {
-            resetFileInfo();
-            return;
+  function stopPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = null;
+  }
+
+  function createJobWithUploadProgress(formData) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/v1/jobs', true);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pctUpload = Math.round((e.loaded / e.total) * 100);
+          // Дадим загрузке 0..20%
+          const uiPct = Math.round((pctUpload / 100) * 20);
+          setProgress(uiPct);
+          jobStageText.textContent = `Загрузка файла… ${pctUpload}%`;
         }
+      };
 
-        const file = videoFile.files[0];
-
-        fileInfoEl.classList.remove('empty');
-        fileNameEl.textContent = file.name || 'Без имени';
-        fileSizeEl.textContent = 'Размер: ' + formatBytes(file.size);
-        fileDurationEl.textContent = 'Длительность: —';
-        selectedFileDurationSec = null;
-
-        // Проверяем лимит 1000 МБ
-        if (file.size > MAX_SIZE_BYTES) {
-            fileInfoEl.classList.add('file-error');
-            uploadButton.disabled = true;
-            alert('Файл превышает максимальный размер 1000 МБ. Пожалуйста, выберите другой файл.');
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            resolve(JSON.parse(xhr.responseText));
+          } catch {
+            reject(new Error('Сервер вернул не JSON'));
+          }
         } else {
-            fileInfoEl.classList.remove('file-error');
-            uploadButton.disabled = false;
+          reject(new Error(`Ошибка создания job: HTTP ${xhr.status} ${xhr.responseText || ''}`));
         }
+      };
 
-        // Считываем длительность через временный video-элемент
-        try {
-            const url = URL.createObjectURL(file);
-            const tempVideo = document.createElement('video');
-            tempVideo.preload = 'metadata';
-            tempVideo.src = url;
-
-            tempVideo.onloadedmetadata = () => {
-                URL.revokeObjectURL(url);
-                selectedFileDurationSec = tempVideo.duration;
-                fileDurationEl.textContent = 'Длительность: ' + formatDuration(tempVideo.duration);
-            };
-
-            tempVideo.onerror = () => {
-                URL.revokeObjectURL(url);
-            };
-        } catch (e) {
-            // без длительности ок
-        }
+      xhr.onerror = () => reject(new Error('Ошибка сети при загрузке'));
+      xhr.send(formData);
     });
+  }
 
-    // === Отправка файла и расчёт времени загрузки до сервиса ===
-    uploadButton.addEventListener('click', async () => {
-        if (!videoFile.files.length) {
-            alert('Выберите файл.');
-            return;
+  async function pollJob(jobId) {
+    stopPolling();
+
+    const tick = async () => {
+      try {
+        const resp = await fetch(`/api/v1/jobs/${jobId}`, { method: 'GET' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+
+        const status = String(data.status || '').toLowerCase();
+        const step = data.step ? String(data.step) : null;
+
+        setBadge(status);
+
+        if (typeof data.progress === 'number') {
+          setProgress(data.progress);
+        } else {
+          // fallback ступени (если progress не отдаёте)
+          if (status === 'queued') setProgress(25);
+          if (status === 'processing') setProgress(60);
+          if (status === 'done') setProgress(100);
+          if (status === 'error') setProgress(100);
         }
 
-        const file = videoFile.files[0];
+        jobStageText.textContent = humanStage(step) || humanStage(status) || '—';
 
-        // Дополнительная защита от больших файлов
-        if (file.size > MAX_SIZE_BYTES) {
-            alert('Файл превышает максимальный размер 1000 МБ. Пожалуйста, выберите другой файл.');
-            return;
+        if (status === 'done') {
+          stopPolling();
+
+          const result = data.result || {};
+          transcriptDiv.textContent = result.transcript || '(пусто)';
+          transcriptSection.style.display = 'block';
+
+          const durationTextServer = typeof result.duration_sec === 'number'
+            ? formatDuration(result.duration_sec)
+            : '—';
+
+          const durationTextClient = selectedFileDurationSec != null
+            ? formatDuration(selectedFileDurationSec)
+            : '—';
+
+          metricsTable.innerHTML = `
+            <tr><td class="metric-label">Язык</td><td>${result.language || '—'}</td></tr>
+            <tr><td class="metric-label">Длительность (по файлу)</td><td>${durationTextClient}</td></tr>
+            <tr><td class="metric-label">Длительность (по серверу)</td><td>${durationTextServer}</td></tr>
+            <tr><td class="metric-label">Job ID</td><td>${jobId}</td></tr>
+          `;
+          metricsSection.style.display = 'block';
+
+          spinner.style.display = 'none';
+          loaderText.style.display = 'none';
+          uploadButton.disabled = false;
         }
 
-        const formData = new FormData();
-        formData.append('file', file);
-
-        // === НОВОЕ: канал и user_id ===
-        formData.append('channel', 'web_vr_test'); // фиксированный канал
-        if (clientIp) {
-            formData.append('user_id', clientIp);   // айпишник пользователя
+        if (status === 'error') {
+          stopPolling();
+          spinner.style.display = 'none';
+          loaderText.style.display = 'none';
+          uploadButton.disabled = false;
+          alert('Ошибка обработки job: ' + (data.error || 'unknown'));
         }
-        // ==============================
+      } catch {
+        jobStageText.textContent = 'Проблема связи… повторяем';
+      }
+    };
 
-        spinner.style.display = 'inline-block';
-        loaderText.style.display = 'inline';
-        uploadButton.disabled = true;
+    await tick();
+    pollTimer = setInterval(tick, 1200);
+  }
 
-        transcriptSection.style.display = 'none';
-        metricsSection.style.display    = 'none';
+  uploadButton.addEventListener('click', async () => {
+    stopPolling();
 
-        const tClientStart = performance.now();
-        let tClientEnd;
+    if (!videoFile.files.length) {
+      alert('Выберите файл.');
+      return;
+    }
 
-        try {
-            const response = await fetch('/api/v1/transcribe', {
-                method: 'POST',
-                body: formData,
-            });
-            tClientEnd = performance.now();
+    const file = videoFile.files[0];
+    if (file.size > MAX_SIZE_BYTES) {
+      alert('Файл превышает максимальный размер 1000 МБ. Пожалуйста, выберите другой файл.');
+      return;
+    }
 
-            const rawText = await response.text();
-            let data;
+    transcriptSection.style.display = 'none';
+    metricsSection.style.display = 'none';
 
-            try {
-                data = JSON.parse(rawText);
-            } catch {
-                alert("Сервер вернул не JSON:\n" + rawText);
-                return;
-            }
+    spinner.style.display = 'inline-block';
+    loaderText.style.display = 'inline';
+    uploadButton.disabled = true;
 
-            if (!response.ok) {
-                const msg = data.detail || data.error || 'Неизвестная ошибка';
-                alert("Ошибка: " + msg);
-                return;
-            }
+    setJobUIVisible(true);
+    setBadge('queued');
+    setProgress(1);
+    jobStageText.textContent = 'Готовим загрузку…';
 
-            // === Расшифровка ===
-            transcriptDiv.textContent = data.transcript || "(пусто)";
-            transcriptSection.style.display = 'block';
+    const formData = new FormData();
+    formData.append('file', file);
 
-            // === Расчёт времени загрузки до сервиса ===
-            let uploadSecondsText = '—';
-            if (typeof tClientEnd === 'number' && typeof data.processing_time === 'number') {
-                const clientTotalMs = tClientEnd - tClientStart;
-                const processingMs  = data.processing_time * 1000;
-                const uploadMs      = Math.max(0, clientTotalMs - processingMs);
+    // IMPORTANT: эти поля должны существовать в backend (ниже даю полный backend-код)
+    formData.append('stt_provider', 'whisper');
+    formData.append('channel', 'web_vr_test');
+    if (clientIp) formData.append('user_id', clientIp);
 
-                uploadSecondsText = (uploadMs / 1000).toFixed(3) + ' сек';
-            }
+    try {
+      jobStageText.textContent = 'Загрузка файла…';
+      const jobResp = await createJobWithUploadProgress(formData);
 
-            const serverDurationSec = typeof data.duration_sec === 'number'
-                ? data.duration_sec
-                : null;
+      const jobId = (jobResp.job_id || jobResp.id || '').toString();
+      if (!jobId) throw new Error('Сервер не вернул job_id');
 
-            const durationTextClient = selectedFileDurationSec != null
-                ? formatDuration(selectedFileDurationSec)
-                : '—';
+      activeJobId = jobId;
+      jobIdText.textContent = jobId;
+      copyJobIdBtn.style.display = 'inline-block';
 
-            const durationTextServer = serverDurationSec != null
-                ? formatDuration(serverDurationSec)
-                : '—';
+      setProgress(25);
+      jobStageText.textContent = 'Задача создана. Ожидаем обработку…';
 
-            metricsTable.innerHTML = `
-                <tr>
-                    <td class="metric-label">Язык</td>
-                    <td>${data.language}</td>
-                </tr>
-                <tr>
-                    <td class="metric-label">Длительность (по файлу)</td>
-                    <td>${durationTextClient}</td>
-                </tr>
-                <tr>
-                    <td class="metric-label">Длительность (по серверу)</td>
-                    <td>${durationTextServer}</td>
-                </tr>
-                <tr>
-                    <td class="metric-label">Время обработки (на сервисе)</td>
-                    <td>${data.processing_time.toFixed(3)} сек</td>
-                </tr>
-                <tr>
-                    <td class="metric-label">Время загрузки до сервиса</td>
-                    <td>${uploadSecondsText}</td>
-                </tr>
-                <tr>
-                    <td class="metric-label">Размер файла</td>
-                    <td>${formatBytes(data.file_size)} (${data.file_size} байт)</td>
-                </tr>
-                <tr>
-                    <td class="metric-label">Video ID</td>
-                    <td>${data.video_id}</td>
-                </tr>
-            `;
-            metricsSection.style.display = 'block';
-
-        } catch (err) {
-            alert("Ошибка сети: " + err.message);
-        } finally {
-            spinner.style.display = 'none';
-            loaderText.style.display = 'none';
-            uploadButton.disabled = false;
-        }
-    });
+      await pollJob(jobId);
+    } catch (err) {
+      spinner.style.display = 'none';
+      loaderText.style.display = 'none';
+      uploadButton.disabled = false;
+      alert(err?.message || String(err));
+    }
+  });
 </script>
-
 </body>
 </html>

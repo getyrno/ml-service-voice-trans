@@ -13,7 +13,6 @@ requests==2.31.0
 httpx==0.27.2
 pytest==8.3.2
 
-# faster-whisper и torch пока живут на NumPy 1.x
 numpy<2
 
 transformers==4.47.0
@@ -23,6 +22,6 @@ omegaconf
 
 redis
 
-# На будущее: если вернёшь VAD через ONNX — CPU-версия onnxruntime,
-# чтобы не упираться в очередную матрицу CUDA/cuDNN
+# ВАЖНО: VAD в faster-whisper (Silero) работает через ONNX Runtime.
+# Ставим CPU-версию (а НЕ onnxruntime-gpu), чтобы не ловить конфликт зависимостей.
 onnxruntime==1.19.2

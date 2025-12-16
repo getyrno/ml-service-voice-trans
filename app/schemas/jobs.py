@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum
+from typing import Any, Optional
 from uuid import UUID
 from datetime import datetime
 from typing import Any
@@ -18,9 +21,12 @@ class JobResponse(BaseModel):
 class JobStatusResponse(BaseModel):
     job_id: UUID
     status: JobStatus
-    progress: str | None = None
-    result: dict[str, Any] | None = None
-    error: str | None = None
+    step: Optional[str] = None
+    progress: Optional[int] = None  # 0..100
+    result: Optional[dict[str, Any]] = None
+    error: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 class CallbackPayload(BaseModel):
     job_id: str
