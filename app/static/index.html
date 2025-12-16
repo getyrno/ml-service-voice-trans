@@ -653,7 +653,10 @@
 
       activeJobId = jobId;
       jobIdText.textContent = jobId;
-      copyJobIdBtn.style.display = 'inline-block';
+      if (copyJobIdBtn) {
+        copyJobIdBtn.style.display = 'inline-block';
+      }
+
 
       setProgress(25);
       jobStageText.textContent = 'Задача создана. Ожидаем обработку…';
