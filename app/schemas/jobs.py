@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import Field
 from enum import Enum
 from typing import Any, Optional
 from uuid import UUID
 from datetime import datetime
 from typing import Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 class JobStatus(str, Enum):
     QUEUED = "queued"
     PROCESSING = "processing"
