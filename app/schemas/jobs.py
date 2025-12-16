@@ -1,32 +1,48 @@
 from __future__ import annotations
 
+from dataclasses import Field
 from enum import Enum
 from typing import Any, Optional
 from uuid import UUID
 from datetime import datetime
 from typing import Any
 from pydantic import BaseModel
-
 class JobStatus(str, Enum):
     QUEUED = "queued"
     PROCESSING = "processing"
     DONE = "done"
     ERROR = "error"
 
+class JobEvent(BaseModel):
+    step: str
+    status: str
+    ts_utc: str
+    message: str | None = None
+
 class JobResponse(BaseModel):
     job_id: UUID
     status: JobStatus
-    created_at: datetime
+    created_at: str
 
 class JobStatusResponse(BaseModel):
     job_id: UUID
     status: JobStatus
-    step: Optional[str] = None
-    progress: Optional[int] = None  # 0..100
-    result: Optional[dict[str, Any]] = None
-    error: Optional[str] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    step: str | None = None
+    progress: int | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    result: dict[str, Any] | None = None
+    error: str | None = None
+    events: list[JobEvent] = Field(default_factory=list)
+
+class JobSummary(BaseModel):
+    job_id: str
+    status: str
+    created_at: str | None = None
+    updated_at: str | None = None
+
+class JobsListResponse(BaseModel):
+    items: list[JobSummary]
 
 class CallbackPayload(BaseModel):
     job_id: str

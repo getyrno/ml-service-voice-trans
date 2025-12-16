@@ -209,10 +209,10 @@
     .section h3 span { font-size: 1.1rem; }
 
     .metric-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.9rem; }
-    .metric-table td { padding: 7px 0; border-bottom: 1px solid #f1f1f3; }
+    .metric-table td { padding: 7px 0; border-bottom: 1px solid #f1f1f3; vertical-align: top; }
     .metric-table tr:last-child td { border-bottom: none; }
 
-    .metric-label { font-weight: 500; width: 40%; color: #3a3a3c; }
+    .metric-label { font-weight: 600; color: #3a3a3c; }
 
     pre {
       margin: 0;
@@ -278,6 +278,26 @@
       font-size:0.8rem;
     }
     .copy-btn:hover{ background:#f4f4f6; }
+
+    details > summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      color: #0071e3;
+      font-weight: 650;
+      padding: 6px 0;
+      outline: none;
+    }
+    details > summary::-webkit-details-marker { display: none; }
+    .subtle { color:#6e6e73; font-size:0.9rem; }
+    .pill {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:4px 10px; border-radius:999px;
+      border:1px solid #e5e5ea; background:#fbfbfd;
+      font-size:0.85rem; font-weight:600; color:#1d1d1f;
+    }
+    .click-row { cursor:pointer; }
+    .click-row:hover td { background: #fbfbfd; }
   </style>
 </head>
 
@@ -323,7 +343,7 @@
 
     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
       <div id="jobBadge" class="job-badge job-idle">—</div>
-      <div style="color:#6e6e73; font-size:0.9rem;">
+      <div class="subtle">
         Job: <span id="jobIdText">—</span>
         <!-- <button id="copyJobIdBtn" class="copy-btn" type="button" style="margin-left:8px; display:none;">Скопировать</button> -->
       </div>
@@ -332,7 +352,29 @@
     <div class="progress" style="margin-top:12px;">
       <div id="jobProgressBar" class="progress-bar" style="width:0%"></div>
     </div>
-    <div id="jobStageText" style="margin-top:8px; color:#6e6e73; font-size:0.9rem;">—</div>
+    <div id="jobStageText" class="subtle" style="margin-top:8px;">—</div>
+  </div>
+
+  <div id="jobHistoryPanel" class="section" style="display:none;">
+    <h3><span>🧾</span> История и статистика</h3>
+
+    <details id="jobHistoryDetails">
+      <summary>Показать историю этапов</summary>
+      <div style="margin-top:12px; overflow:auto;">
+        <table class="metric-table" id="jobHistoryTable"></table>
+      </div>
+      <div id="jobTotals" class="subtle" style="margin-top:10px;"></div>
+    </details>
+
+    <details id="jobsListDetails" style="margin-top:10px;">
+      <summary>Показать последние jobs</summary>
+      <div style="margin-top:12px; overflow:auto;">
+        <table class="metric-table" id="jobsListTable"></table>
+      </div>
+      <div class="subtle" style="margin-top:10px;">
+        Клик по строке откроет выбранную job в этом же UI.
+      </div>
+    </details>
   </div>
 
   <div id="transcript-section" class="section" style="display:none;">
@@ -347,7 +389,7 @@
 </div>
 
 <script>
-  const MAX_SIZE_BYTES = 1000 * 1024 * 1024; // 1000 MB
+  const MAX_SIZE_BYTES = 1000 * 1024 * 1024;
 
   const videoFile     = document.getElementById('videoFile');
   const uploadButton  = document.getElementById('uploadButton');
@@ -372,6 +414,11 @@
   const jobProgressBar   = document.getElementById('jobProgressBar');
   const copyJobIdBtn     = document.getElementById('copyJobIdBtn');
 
+  const jobHistoryPanel  = document.getElementById('jobHistoryPanel');
+  const jobHistoryTable  = document.getElementById('jobHistoryTable');
+  const jobTotals        = document.getElementById('jobTotals');
+  const jobsListTable    = document.getElementById('jobsListTable');
+
   let pollTimer = null;
   let activeJobId = null;
   let selectedFileDurationSec = null;
@@ -389,15 +436,14 @@
   })();
 
   if (copyJobIdBtn) {
-  copyJobIdBtn.addEventListener('click', async () => {
-    try {
+    copyJobIdBtn.addEventListener('click', async () => {
+      try {
         await navigator.clipboard.writeText(activeJobId || '');
         copyJobIdBtn.textContent = 'Скопировано';
         setTimeout(() => (copyJobIdBtn.textContent = 'Скопировать'), 1200);
       } catch {}
     });
-  } 
-
+  }
 
   function formatBytes(bytes) {
     if (!bytes && bytes !== 0) return '—';
@@ -417,6 +463,22 @@
     return `${m}:${String(s).padStart(2,'0')}`;
   }
 
+  function parseIsoTs(ts) {
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function fmtTime(d) {
+    if (!d) return '—';
+    return d.toLocaleString('ru-RU', { hour12:false });
+  }
+
+  function fmtMs(ms) {
+    if (ms == null || !isFinite(ms)) return '—';
+    if (ms < 1000) return `${Math.round(ms)} ms`;
+    return `${(ms/1000).toFixed(2)} s`;
+  }
+
   function resetFileInfo() {
     fileInfoEl.classList.add('empty');
     fileInfoEl.classList.remove('file-error');
@@ -429,6 +491,7 @@
 
   function setJobUIVisible(visible) {
     jobStatusPanel.style.display = visible ? 'block' : 'none';
+    jobHistoryPanel.style.display = visible ? 'block' : 'none';
   }
 
   function setBadge(status) {
@@ -463,6 +526,123 @@
       error: 'Ошибка'
     };
     return map[step] || step || '';
+  }
+
+  function stopPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = null;
+  }
+
+  // ===== История этапов (events) =====
+  function renderHistory(events) {
+    if (!Array.isArray(events) || events.length === 0) {
+      jobHistoryTable.innerHTML = `
+        <tr><td class="metric-label">История</td><td>Нет данных</td></tr>
+      `;
+      jobTotals.textContent = '';
+      return;
+    }
+
+    const sorted = [...events].sort((a,b) => {
+      const ta = parseIsoTs(a.ts_utc)?.getTime() ?? 0;
+      const tb = parseIsoTs(b.ts_utc)?.getTime() ?? 0;
+      return ta - tb;
+    });
+
+    // длительность этапа: START -> DONE (по step)
+    const starts = new Map();
+    const rows = [];
+
+    let jobStart = null;
+    let jobEnd = null;
+
+    for (const ev of sorted) {
+      const d = parseIsoTs(ev.ts_utc);
+      if (!jobStart && d) jobStart = d;
+
+      const step = String(ev.step || 'unknown');
+      const status = String(ev.status || '');
+      const message = ev.message ? String(ev.message) : '';
+
+      let deltaMs = null;
+      if (status === 'START' && d) {
+        starts.set(step, d);
+      }
+      if (status === 'DONE' && d) {
+        const st = starts.get(step);
+        if (st) deltaMs = d.getTime() - st.getTime();
+        jobEnd = d;
+      }
+      if ((status === 'ERROR' || status === 'DONE') && d) {
+        jobEnd = d;
+      }
+
+      rows.push({ step, status, time: d, deltaMs, message });
+    }
+
+    jobHistoryTable.innerHTML = `
+      <tr>
+        <td class="metric-label">Этап</td>
+        <td class="metric-label">Статус</td>
+        <td class="metric-label">Время</td>
+        <td class="metric-label">Время этапа</td>
+      </tr>
+      ${rows.map(r => `
+        <tr>
+          <td>${humanStage(r.step) || r.step}</td>
+          <td><span class="pill">${r.status}</span></td>
+          <td>${fmtTime(r.time)}</td>
+          <td>${fmtMs(r.deltaMs)}</td>
+        </tr>
+        ${r.message ? `
+          <tr>
+            <td colspan="4" class="subtle" style="padding-top:0;">${r.message}</td>
+          </tr>
+        ` : ``}
+      `).join('')}
+    `;
+
+    const totalMs = (jobStart && jobEnd) ? (jobEnd.getTime() - jobStart.getTime()) : null;
+    jobTotals.textContent = totalMs != null ? `Общее время job: ${fmtMs(totalMs)}` : '';
+  }
+
+  // ===== Список последних jobs =====
+  async function refreshJobsList(limit = 20) {
+    try {
+      const resp = await fetch(`/api/v1/jobs?limit=${encodeURIComponent(limit)}`);
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const items = Array.isArray(data.items) ? data.items : [];
+
+      jobsListTable.innerHTML = `
+        <tr>
+          <td class="metric-label">Job ID</td>
+          <td class="metric-label">Статус</td>
+          <td class="metric-label">Создано</td>
+          <td class="metric-label">Обновлено</td>
+        </tr>
+        ${items.map(j => `
+          <tr class="click-row" data-jobid="${j.job_id}">
+            <td style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.85rem;">${j.job_id}</td>
+            <td><span class="pill">${j.status}</span></td>
+            <td>${j.created_at ? fmtTime(parseIsoTs(j.created_at)) : '—'}</td>
+            <td>${j.updated_at ? fmtTime(parseIsoTs(j.updated_at)) : '—'}</td>
+          </tr>
+        `).join('')}
+      `;
+
+      // click handler
+      jobsListTable.querySelectorAll('tr[data-jobid]').forEach(tr => {
+        tr.addEventListener('click', async () => {
+          const id = tr.getAttribute('data-jobid');
+          if (id) {
+            activeJobId = id;
+            jobIdText.textContent = id;
+            await pollJob(id, { oneShot: true }); // разово обновить
+          }
+        });
+      });
+    } catch {}
   }
 
   // Обновление файла + длительность
@@ -503,11 +683,6 @@
     } catch {}
   });
 
-  function stopPolling() {
-    if (pollTimer) clearInterval(pollTimer);
-    pollTimer = null;
-  }
-
   function createJobWithUploadProgress(formData) {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -516,8 +691,7 @@
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
           const pctUpload = Math.round((e.loaded / e.total) * 100);
-          // Дадим загрузке 0..20%
-          const uiPct = Math.round((pctUpload / 100) * 20);
+          const uiPct = Math.round((pctUpload / 100) * 20); // 0..20%
           setProgress(uiPct);
           jobStageText.textContent = `Загрузка файла… ${pctUpload}%`;
         }
@@ -540,8 +714,10 @@
     });
   }
 
-  async function pollJob(jobId) {
-    stopPolling();
+  async function pollJob(jobId, opts = {}) {
+    const oneShot = !!opts.oneShot;
+
+    if (!oneShot) stopPolling();
 
     const tick = async () => {
       try {
@@ -554,10 +730,8 @@
 
         setBadge(status);
 
-        if (typeof data.progress === 'number') {
-          setProgress(data.progress);
-        } else {
-          // fallback ступени (если progress не отдаёте)
+        if (typeof data.progress === 'number') setProgress(data.progress);
+        else {
           if (status === 'queued') setProgress(25);
           if (status === 'processing') setProgress(60);
           if (status === 'done') setProgress(100);
@@ -565,9 +739,11 @@
         }
 
         jobStageText.textContent = humanStage(step) || humanStage(status) || '—';
+        renderHistory(data.events);
+        refreshJobsList(20);
 
         if (status === 'done') {
-          stopPolling();
+          if (!oneShot) stopPolling();
 
           const result = data.result || {};
           transcriptDiv.textContent = result.transcript || '(пусто)';
@@ -595,7 +771,7 @@
         }
 
         if (status === 'error') {
-          stopPolling();
+          if (!oneShot) stopPolling();
           spinner.style.display = 'none';
           loaderText.style.display = 'none';
           uploadButton.disabled = false;
@@ -607,7 +783,7 @@
     };
 
     await tick();
-    pollTimer = setInterval(tick, 1200);
+    if (!oneShot) pollTimer = setInterval(tick, 1200);
   }
 
   uploadButton.addEventListener('click', async () => {
@@ -639,7 +815,7 @@
     const formData = new FormData();
     formData.append('file', file);
 
-    // IMPORTANT: эти поля должны существовать в backend (ниже даю полный backend-код)
+    // backend поддерживает эти поля
     formData.append('stt_provider', 'whisper');
     formData.append('channel', 'web_vr_test');
     if (clientIp) formData.append('user_id', clientIp);
@@ -653,10 +829,10 @@
 
       activeJobId = jobId;
       jobIdText.textContent = jobId;
+
       if (copyJobIdBtn) {
         copyJobIdBtn.style.display = 'inline-block';
       }
-
 
       setProgress(25);
       jobStageText.textContent = 'Задача создана. Ожидаем обработку…';
@@ -669,6 +845,9 @@
       alert(err?.message || String(err));
     }
   });
+
+  // initial: list jobs
+  refreshJobsList(20);
 </script>
 </body>
 </html>
