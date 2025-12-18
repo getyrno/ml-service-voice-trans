@@ -62,7 +62,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
          apt-get -o Acquire::Retries=5 install -y --no-install-recommends --fix-missing \
            python3 python-is-python3 \
            ffmpeg \
-           ca-certificates; \
+           ca-certificates \
+           curl; \
       then ok=1; break; fi; \
       echo "APT failed, retry $i" >&2; sleep $((i*2)); \
     done; \
@@ -76,4 +77,6 @@ WORKDIR /app
 COPY ./app /app/app
 
 EXPOSE 8000
+
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
