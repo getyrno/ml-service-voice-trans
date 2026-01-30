@@ -20,7 +20,7 @@ def generate(req: LLMRequest):
         inputs = tokenizer(
             req.prompt,
             return_tensors="pt"
-        )
+        ).to(device)
 
         with torch.no_grad():
             output = model.generate(
