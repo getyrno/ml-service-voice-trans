@@ -2,11 +2,16 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from typing import Optional
 
-MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
+MODEL_NAME = "Qwen/Qwen2.5-3B-Instruct"
 
-tokenizer: Optional[AutoTokenizer] = None
-model: Optional[AutoModelForCausalLM] = None
-device: str = "cpu"
+model = AutoModelForCausalLM.from_pretrained(
+    MODEL_NAME,
+    torch_dtype=torch.float16,
+    device_map=None
+).to("cuda")
+
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+device = "cuda"
 
 
 def load_model():
