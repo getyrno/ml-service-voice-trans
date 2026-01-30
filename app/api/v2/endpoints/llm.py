@@ -3,7 +3,7 @@ import torch
 from fastapi import APIRouter, HTTPException
 
 from app.api.v2.llm_schemas import LLMRequest, LLMResponse
-from app.services.llm_provider import load_model, tokenizer, model, device
+import app.services.llm_provider as llm_provider
 
 router = APIRouter(prefix="/llm", tags=["llm"])
 
@@ -11,7 +11,11 @@ router = APIRouter(prefix="/llm", tags=["llm"])
 @router.post("/generate", response_model=LLMResponse)
 def generate(req: LLMRequest):
     try:
-        load_model()
+        llm_provider.load_model()
+
+        tokenizer = llm_provider.tokenizer
+        model = llm_provider.model
+        device = llm_provider.device
 
         inputs = tokenizer(
             req.prompt,
