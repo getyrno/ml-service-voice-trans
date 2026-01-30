@@ -25,3 +25,5 @@ redis
 # ВАЖНО: VAD в faster-whisper (Silero) работает через ONNX Runtime.
 # Ставим CPU-версию (а НЕ onnxruntime-gpu), чтобы не ловить конфликт зависимостей.
 onnxruntime==1.19.2
+
+accelerate==0.26.1

@@ -1,9 +1,10 @@
 import asyncio
-from fastapi import BackgroundTasks, FastAPI
+from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from app.api.v1.endpoints import transcription, jobs
 from app.services.job_worker import worker_loop
+from app.api.v2.endpoints import generate
 from app.services.triggers.trigger_benchmark import run_benchmark_and_push
 import os
 
@@ -17,11 +18,16 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(transcription.router, prefix="/api/v1", tags=["Транскрибация"])
 app.include_router(jobs.router, prefix="/api/v1", tags=["Jobs"])
+app.include_router(
+    generate.router,
+    prefix="/api/v2",
+    tags=["LLM"]
+)
 
 @app.on_event("startup")
 async def startup_event():
-    import asyncio
-    asyncio.create_task(worker_loop())
+    asyncio.create_task(worker_loop(), name="job-worker")
+
 
 
 @app.get("/healthz", tags=["Служебное"])
