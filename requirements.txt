@@ -14,7 +14,8 @@ httpx==0.27.2
 pytest==8.3.2
 
 numpy<2
-pyannote
+pyannote.audio==2.1.1
+pyannote.core==5.0.0
 transformers==4.47.0
 sentencepiece
 hydra-core
