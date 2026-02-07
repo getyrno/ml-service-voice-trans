@@ -15,7 +15,7 @@ pytest==8.3.2
 
 numpy<2
 pyannote.audio==2.1.1
-pyannote.core==5.0.0
+# pyannote.core НЕ фиксируем
 transformers==4.47.0
 sentencepiece
 hydra-core
