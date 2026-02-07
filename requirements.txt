@@ -1,30 +1,50 @@
+# --------------------
+# Web
+# --------------------
 fastapi==0.115.2
 uvicorn[standard]==0.30.1
-
 python-multipart==0.0.9
+
+# --------------------
+# Audio / Video
+# --------------------
 ffmpeg-python==0.2.0
 
-# ВАЖНО: связка под CUDA 12.3 + cuDNN 9
-# faster-whisper использует CTranslate2, который с 4.5.0 работает с cuDNN 9 
+# --------------------
+# Whisper / ASR
+# --------------------
 faster-whisper==1.1.0
 ctranslate2==4.6.2
 
+# --------------------
+# HTTP / Utils
+# --------------------
 requests==2.31.0
 httpx==0.27.2
 pytest==8.3.2
 
+# --------------------
+# Core ML deps
+# --------------------
 numpy<2
-pyannote.audio==2.1.1
-# pyannote.core НЕ фиксируем
 transformers==4.47.0
 sentencepiece
+accelerate==0.26.1
+
+# --------------------
+# Diarization (ВАЖНО)
+# --------------------
+pyannote.audio==2.1.1
+# pyannote.core подтянется автоматически (4.x)
+
+# --------------------
+# Config / Infra
+# --------------------
 hydra-core
 omegaconf
-
 redis
 
-# ВАЖНО: VAD в faster-whisper (Silero) работает через ONNX Runtime.
-# Ставим CPU-версию (а НЕ onnxruntime-gpu), чтобы не ловить конфликт зависимостей.
+# --------------------
+# ONNX (CPU only, для Silero VAD)
+# --------------------
 onnxruntime==1.19.2
-
-accelerate==0.26.1
