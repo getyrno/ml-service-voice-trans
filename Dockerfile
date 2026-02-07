@@ -37,12 +37,12 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # PIP: кэш + ретраи
 RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
-    set -eux; \
-    pip install -U pip setuptools wheel; \
-    pip install --retries 10 --timeout 120 --prefer-binary \
-      torch==2.5.1+cu124 torchvision==0.20.1+cu124 torchaudio==2.5.1 \
-      --index-url https://download.pytorch.org/whl/cu124; \
-    pip install --retries 10 --timeout 120 --prefer-binary -r requirements.txt
+        set -eux; \
+        pip install -U pip setuptools wheel; \
+        pip install --retries 10 --timeout 120 --prefer-binary \
+        torch==2.5.1+cu124 torchvision==0.20.1+cu124 torchaudio==2.5.1 \
+        --index-url https://download.pytorch.org/whl/cu124; \
+        pip install --retries 10 --timeout 120 --prefer-binary -r requirements.txt
 
 ############################
 # Runtime (быстрее деплой)
