@@ -35,14 +35,23 @@ COPY requirements.txt .
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# PIP: кэш + ретраи
+# -------------------------
+# PYTORCH (СТАБИЛЬНАЯ СВЯЗКА)
+# -------------------------
 RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
-        set -eux; \
-        pip install -U pip setuptools wheel; \
-        pip install --retries 10 --timeout 120 --prefer-binary \
-        torch==2.5.1+cu124 torchvision==0.20.1+cu124 torchaudio==2.5.1 \
-        --index-url https://download.pytorch.org/whl/cu124; \
-        pip install --retries 10 --timeout 120 --prefer-binary -r requirements.txt
+    set -eux; \
+    pip install -U pip setuptools wheel; \
+    pip uninstall -y torch torchvision torchaudio || true; \
+    pip install --no-cache-dir --force-reinstall \
+      torch==2.4.1+cu124 \
+      torchvision==0.19.1+cu124 \
+      torchaudio==2.4.1+cu124 \
+      --index-url https://download.pytorch.org/whl/cu124
+
+# Остальные зависимости
+RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
+    set -eux; \
+    pip install --no-cache-dir --force-reinstall -r requirements.txt
 
 ############################
 # Runtime (быстрее деплой)
@@ -52,7 +61,7 @@ FROM nvidia/cuda:12.3.2-cudnn9-runtime-ubuntu22.04 AS runtime
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1
 
-# Минимум пакетов в рантайме (быстрее pull/старт)
+# Минимум пакетов в рантайме
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     set -eux; \
@@ -79,4 +88,3 @@ COPY ./app /app/app
 EXPOSE 8000
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-
